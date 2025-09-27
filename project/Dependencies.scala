@@ -6,7 +6,7 @@ object Dependencies {
   lazy val ZioConfigVersion = "4.0.2"
   lazy val ZIOHttpVersion = "3.3.3"
   lazy val zioQuillVersion = "4.8.5"
-  lazy val zioLoggingVersion = "2.5.1"
+  lazy val zioLoggingVersion = "2.1.15"
 
   lazy val LiquibaseVersion = "3.4.2"
   lazy val PostgresVersion = "42.3.1"
