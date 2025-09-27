@@ -9,7 +9,7 @@ object Main extends ZIOAppDefault {
     Runtime.setConfigProvider(
         TypesafeConfigProvider
           .fromResourcePath()
-      ) ++ Logg.liveCustomLogger
+      ) ++ Logger.liveDefaultLogger
 
   private def app: ZIO[Any, Config.Error, Unit] = for {
     conf <- ZIO.config[Conf](AppConf.conf)
