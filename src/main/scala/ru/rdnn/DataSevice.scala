@@ -11,7 +11,7 @@ trait DataService {
   /* функция - должна обновлять UserAccount */
   def updateUserAccount(userAccount: UserAccount): ZIO[DataSource, Throwable, Unit]
   /* функция - должна производить транзакцию с одного счета на другой */
-//  def provideTransaction: ZIO[DataSource, Throwable, Unit]
+  def provideTransaction(fromAccountId: java.util.UUID, toAccountId: java.util.UUID, amount: Double): ZIO[DataSource, Throwable, Unit]
 }
 
 class DataServiceImpl(repository: DataRepository) extends DataService {
@@ -24,16 +24,36 @@ class DataServiceImpl(repository: DataRepository) extends DataService {
     repository.updateUserAccount(userAccount)
   }
 
-    /* 
-    реализовать функцию provideTransaction, которая должно осуществлять 
-    транзакцию с одного счета на другой 
-    * функция в качестве параметров должна принимать счет откуда и куда переводить и сумму
-    * если счета не существуют, то должна возвращаться ошибка
-    * если счет не имеет достаточного баланса, то должна возвращаться ошибка
-    * если транзакция не может быть выполнена, то должна возвращаться ошибка
-    * если транзакция выполнена успешно, то должна возвращаться успешная транзакция
-    * если транзакция выполнена неуспешно, то должна возвращаться ошибка
-    */
+  def provideTransaction(fromAccountId: java.util.UUID, toAccountId: java.util.UUID, amount: Double): ZIO[DataSource, Throwable, Unit] = {
+    for {
+      // Проверяем существование счетов
+      fromAccountOpt <- repository.getUserAccountById(fromAccountId)
+      toAccountOpt <- repository.getUserAccountById(toAccountId)
+      
+      // Валидация существования счетов
+      fromAccount <- ZIO.fromOption(fromAccountOpt)
+        .mapError(_ => new RuntimeException(s"Source account with id $fromAccountId not found"))
+      toAccount <- ZIO.fromOption(toAccountOpt)
+        .mapError(_ => new RuntimeException(s"Destination account with id $toAccountId not found"))
+      
+      // Валидация достаточности средств
+      _ <- ZIO.fail(new RuntimeException(s"Insufficient balance. Required: $amount, Available: ${fromAccount.balance}"))
+        .when(fromAccount.balance < amount)
+      
+      // Валидация положительной суммы
+      _ <- ZIO.fail(new RuntimeException("Transaction amount must be positive"))
+        .when(amount <= 0)
+      
+      // Выполняем транзакцию атомарно
+      _ <- ZIO.collectAllPar(
+        List(
+          repository.updateUserAccount(fromAccount.copy(balance = fromAccount.balance - amount)),
+          repository.updateUserAccount(toAccount.copy(balance = toAccount.balance + amount))
+        )
+      ).unit
+      
+    } yield ()
+  }
 
 }
 
@@ -44,6 +64,9 @@ object DataService {
     
   def updateUserAccount(userAccount: UserAccount): ZIO[DataSource with DataService, Throwable, Unit] =
     ZIO.service[DataService].flatMap(_.updateUserAccount(userAccount))
+    
+  def provideTransaction(fromAccountId: java.util.UUID, toAccountId: java.util.UUID, amount: Double): ZIO[DataSource with DataService, Throwable, Unit] =
+    ZIO.service[DataService].flatMap(_.provideTransaction(fromAccountId, toAccountId, amount))
     
   val live: ZLayer[DataRepository, Nothing, DataService] = 
     ZLayer.fromFunction(new DataServiceImpl(_))

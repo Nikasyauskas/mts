@@ -25,6 +25,13 @@ object Main extends ZIOAppDefault {
     )
     updatedList <- DataService.listUserAccounts
     _           <- ZIO.logInfo(s"Updated Accounts: ${updatedList.mkString("\n", "\n", "")}")
+    _ <- DataService.provideTransaction(
+      java.util.UUID.fromString("bf7e2e36-350b-4ea7-ae7d-ff4ce38d3476"),
+      java.util.UUID.fromString("e4224dc9-ac32-4682-a43c-d7cfc791af5b"),
+      100.00
+    )
+    updatedList <- DataService.listUserAccounts
+    _           <- ZIO.logInfo(s"Updated Accounts: ${updatedList.mkString("\n", "\n", "")}")
   } yield ()
 
   override def run: ZIO[Any, Exception, Unit] = app

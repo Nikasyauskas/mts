@@ -10,6 +10,7 @@ case class UserAccount(id: java.util.UUID, account_number: String, balance: Doub
 trait DataRepository {
   def listUserAccounts: ZIO[DataSource, Throwable, List[UserAccount]]
   def updateUserAccount(userAccount: UserAccount): ZIO[DataSource, Throwable, Unit]
+  def getUserAccountById(id: java.util.UUID): ZIO[DataSource, Throwable, Option[UserAccount]]
 }
 
 class Impl(dataSource: DataSource) extends DataRepository {
@@ -33,6 +34,14 @@ class Impl(dataSource: DataSource) extends DataRepository {
           .filter(_.account_number == lift(account.account_number))
           .updateValue(lift(account))
       ).unit.provide(ZLayer.succeed(ds))
+    }
+    
+  def getUserAccountById(id: java.util.UUID): ZIO[DataSource, Throwable, Option[UserAccount]] = 
+    ZIO.service[DataSource].flatMap { ds =>
+      ctx.run(
+        backUsersSchema
+          .filter(_.id == lift(id))
+      ).map(_.headOption).provide(ZLayer.succeed(ds))
     }
 }
 
