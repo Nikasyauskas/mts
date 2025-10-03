@@ -13,6 +13,7 @@ lazy val root = (project in file("."))
           Dependencies.liquibase,
           Dependencies.postgres,
           Dependencies.zioLogging,
+          Dependencies.zioJson,
           Dependencies.logback
       ),
     dependencyOverrides += "dev.zio" %% "zio-logging" % "2.1.15"
