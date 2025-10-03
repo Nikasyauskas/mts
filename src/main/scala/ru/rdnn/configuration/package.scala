@@ -6,6 +6,11 @@ import zio.{Config, _}
 
 package object configuration {
 
+  case class ServerConfig(
+    port: Int,
+    host: String
+  )
+
   case class DatabaseConfig(
     jdbcUrl: String,
     username: String,
@@ -14,6 +19,7 @@ package object configuration {
   )
 
   case class Conf(
+    server: ServerConfig,
     database: DatabaseConfig
   )
 

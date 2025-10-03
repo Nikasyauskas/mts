@@ -3,6 +3,7 @@ package ru.rdnn
 import com.zaxxer.hikari.HikariDataSource
 import io.getquill._
 import io.getquill.context.ZioJdbc
+import io.getquill.jdbczio.Quill
 import io.getquill.util.LoadConfig
 import liquibase.Liquibase
 import liquibase.database.jvm.JdbcConnection
@@ -21,6 +22,9 @@ package object db {
 
   val zioDS: ZLayer[Any, Throwable, DataSource] = 
     ZioJdbc.DataSourceLayer.fromDataSource(hikariDS)
+    
+  val quillDS: ZLayer[Any, Throwable, DataSource] = 
+    Quill.DataSource.fromPrefix("database")
 
 
 

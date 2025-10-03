@@ -1,0 +1,19 @@
+package ru.rdnn
+
+import zio.json.{DeriveJsonDecoder, JsonDecoder}
+import java.util.UUID
+
+package object dto {
+
+  case class TransferRequest(
+    fromAccountId: UUID,
+    toAccountId: UUID,
+    amount: Double
+  )
+
+  object TransferRequest {
+    implicit val transferRequestDecoder: JsonDecoder[TransferRequest] = DeriveJsonDecoder.gen[TransferRequest]
+
+  }
+
+}
