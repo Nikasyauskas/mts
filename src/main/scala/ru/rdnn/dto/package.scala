@@ -5,6 +5,9 @@ import java.util.UUID
 
 package object dto {
 
+  case class UserAccount(id: UUID, account_number: String, balance: Double)
+
+
   case class TransferRequest(
     fromAccountId: UUID,
     toAccountId: UUID,

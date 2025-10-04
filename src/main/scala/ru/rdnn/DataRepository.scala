@@ -1,16 +1,17 @@
 package ru.rdnn
 
-import io.getquill.context.ZioJdbc.QIO
-import zio.{ULayer, ZIO, ZLayer}
-import ru.rdnn.db
+import zio.{ZIO, ZLayer}
+import ru.rdnn.dto.UserAccount
+
+import java.util.UUID
 import javax.sql.DataSource
 
-case class UserAccount(id: java.util.UUID, account_number: String, balance: Double)
+
 
 trait DataRepository {
   def listUserAccounts: ZIO[DataSource, Throwable, List[UserAccount]]
   def updateUserAccount(userAccount: UserAccount): ZIO[DataSource, Throwable, Unit]
-  def findAccountById(id: java.util.UUID): ZIO[DataSource, Throwable, Option[UserAccount]]
+  def findAccountById(id: UUID): ZIO[DataSource, Throwable, Option[UserAccount]]
   def findByAccountNumber(accountNumber: String): ZIO[DataSource, Throwable, Option[UserAccount]]
 }
 

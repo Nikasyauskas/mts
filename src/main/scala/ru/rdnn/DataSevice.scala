@@ -1,7 +1,7 @@
 package ru.rdnn
 
-import io.getquill.context.ZioJdbc.QIO
-import zio.{ULayer, URIO, ZIO, ZLayer}
+import ru.rdnn.dto.UserAccount
+import zio.{ZIO, ZLayer}
 
 import javax.sql.DataSource
 
