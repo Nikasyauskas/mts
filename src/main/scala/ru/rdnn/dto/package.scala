@@ -13,7 +13,16 @@ package object dto {
 
   object TransferRequest {
     implicit val transferRequestDecoder: JsonDecoder[TransferRequest] = DeriveJsonDecoder.gen[TransferRequest]
+  }
 
+  case class TransferRequestByAN(
+    fromAccount: String,
+    toAccount: String,
+    amount: Double
+  )
+
+  object TransferRequestByAN {
+    implicit val transferRequestDecoder: JsonDecoder[TransferRequestByAN] = DeriveJsonDecoder.gen[TransferRequestByAN]
   }
 
 }

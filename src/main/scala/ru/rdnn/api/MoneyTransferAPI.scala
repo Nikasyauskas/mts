@@ -2,7 +2,7 @@ package ru.rdnn.api
 
 import zio._
 import ru.rdnn.DataService
-import ru.rdnn.dto.TransferRequest
+import ru.rdnn.dto.{TransferRequest, TransferRequestByAN}
 import zio.http.{Response, _}
 import zio.json._
 
@@ -23,8 +23,26 @@ object MoneyTransferAPI {
             transferRequest.toAccountId,
             transferRequest.amount
           )
-        } yield Response.json("""Transfer completed successfully""")
+        } yield Response.json(s"""Transfer completed successfully\n""")
       )
+        .catchAll { error =>
+          ZIO.succeed(Response.badRequest(s"Error: ${error.getMessage}"))
+        }
+    },
+    Method.POST / "transfer" / "account-number" -> handler { (req: Request) =>
+      (
+        for {
+          body <- req.body.asString
+          transferRequest <- ZIO
+            .fromEither(body.fromJson[TransferRequestByAN])
+            .mapError(err => new Exception(s"Invalid JSON: $err"))
+          _ <- DataService.provideTransaction(
+            transferRequest.fromAccount,
+            transferRequest.toAccount,
+            transferRequest.amount
+          )
+        } yield Response.json(s"""Transfer completed successfully\n""")
+        )
         .catchAll { error =>
           ZIO.succeed(Response.badRequest(s"Error: ${error.getMessage}"))
         }
