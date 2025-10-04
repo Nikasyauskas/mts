@@ -2,7 +2,7 @@ package ru.rdnn
 
 import zio._
 import zio.logging.LogFormat._
-import zio.logging.{console, consoleLogger, ConsoleLoggerConfig, LogColor, LogFilter, LogFormat}
+import zio.logging.{consoleLogger, ConsoleLoggerConfig, LogColor, LogFilter, LogFormat}
 
 import java.time.LocalDateTime
 
