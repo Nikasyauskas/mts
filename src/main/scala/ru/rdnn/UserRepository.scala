@@ -8,14 +8,14 @@ import javax.sql.DataSource
 
 
 
-trait DataRepository {
+trait UserRepository {
   def listUserAccounts: ZIO[DataSource, Throwable, List[UserAccount]]
   def updateUserAccount(userAccount: UserAccount): ZIO[DataSource, Throwable, Unit]
   def findAccountById(id: UUID): ZIO[DataSource, Throwable, Option[UserAccount]]
   def findByAccountNumber(accountNumber: String): ZIO[DataSource, Throwable, Option[UserAccount]]
 }
 
-class Impl(dataSource: DataSource) extends DataRepository {
+class UserRepositoryImpl(dataSource: DataSource) extends UserRepository {
   private val ctx = db.Ctx
   import ctx._
 
@@ -64,6 +64,6 @@ class Impl(dataSource: DataSource) extends DataRepository {
     }
 }
 
-object DataRepository {
-  val live: ZLayer[DataSource, Nothing, DataRepository] = ZLayer.fromFunction(new Impl(_))
+object UserRepository {
+  val live: ZLayer[DataSource, Nothing, UserRepository] = ZLayer.fromFunction(new UserRepositoryImpl(_))
 }

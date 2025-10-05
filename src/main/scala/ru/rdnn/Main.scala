@@ -21,7 +21,8 @@ object Main extends ZIOAppDefault {
       .provide(
         Server.default,
         db.quillDS,
-        DataRepository.live,
+        UserRepository.live,
+        TransactionsRepository.live,
         DataService.live
       )
       .orDie

@@ -7,6 +7,12 @@ package object dto {
 
   case class UserAccount(id: UUID, account_number: String, balance: Double)
 
+  case class Transactions(
+    id: UUID,
+    from_account_id: String,
+    to_account_id: String,
+    amount: Double
+  )
 
   case class TransferRequest(
     fromAccountId: UUID,

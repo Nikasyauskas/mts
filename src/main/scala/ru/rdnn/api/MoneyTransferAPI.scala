@@ -2,7 +2,7 @@ package ru.rdnn.api
 
 import zio._
 import ru.rdnn.DataService
-import ru.rdnn.dto.{TransferRequest, TransferRequestByAN}
+import ru.rdnn.dto.{Transactions, TransferRequest, TransferRequestByAN}
 import zio.http.{Response, _}
 import zio.json._
 
@@ -40,6 +40,16 @@ object MoneyTransferAPI {
             transferRequest.fromAccount,
             transferRequest.toAccount,
             transferRequest.amount
+          )
+          userAccount <- DataService.findUserByAccountNumber(transferRequest.fromAccount)
+          _ <- ZIO.logInfo(s"User who provide transaction: ${userAccount.getOrElse("User not found")}")
+          _ <- DataService.insertTransaction(
+            Transactions(
+              userAccount.get.id,
+              transferRequest.fromAccount,
+              transferRequest.toAccount,
+              transferRequest.amount
+            )
           )
         } yield Response.json(s"""Transfer completed successfully\n""")
         )

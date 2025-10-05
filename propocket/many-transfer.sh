@@ -9,7 +9,7 @@ curl -X POST http://localhost:8080/transfer/ \
 curl -X POST http://localhost:8080/transfer/account-number \
   -H "Content-Type: application/json" \
   -d '{
-    "fromAccount": "8901201001",
-    "toAccount": "8901201002",
+    "fromAccount": "8901201002",
+    "toAccount": "8901201001",
     "amount": 50.00
   }'
