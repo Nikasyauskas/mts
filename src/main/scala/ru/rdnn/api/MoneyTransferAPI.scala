@@ -41,8 +41,10 @@ object MoneyTransferAPI {
             transferRequest.toAccount,
             transferRequest.amount
           )
+          _ <- ZIO.logInfo(
+            s"${transferRequest.amount} were transferred from account ${transferRequest.fromAccount} to ${transferRequest.toAccount}"
+          )
           userAccount <- DataService.findUserByAccountNumber(transferRequest.fromAccount)
-          _ <- ZIO.logInfo(s"User who provide transaction: ${userAccount.getOrElse("User not found")}")
           _ <- DataService.insertTransaction(
             Transactions(
               userAccount.get.id,
@@ -52,7 +54,7 @@ object MoneyTransferAPI {
             )
           )
         } yield Response.json(s"""Transfer completed successfully\n""")
-        )
+      )
         .catchAll { error =>
           ZIO.succeed(Response.badRequest(s"Error: ${error.getMessage}"))
         }
