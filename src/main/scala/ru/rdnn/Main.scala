@@ -23,6 +23,7 @@ object Main extends ZIOAppDefault {
         db.quillDS,
         UserRepository.live,
         TransactionsRepository.live,
+        BalanceHistoryRepository.live,
         DataService.live
       )
       .orDie

@@ -2,6 +2,8 @@ package ru.rdnn
 
 import zio.json.{DeriveJsonDecoder, JsonDecoder}
 import java.util.UUID
+import java.time.ZonedDateTime
+
 
 package object dto {
 
@@ -18,6 +20,15 @@ package object dto {
     fromAccountId: UUID,
     toAccountId: UUID,
     amount: Double
+  )
+
+  case class BalanceHistory(
+    id: UUID,
+    account_number: String,
+    old_balance: Double,
+    new_balance: Double,
+    amount: Double,
+    created_at: ZonedDateTime
   )
 
   object TransferRequest {

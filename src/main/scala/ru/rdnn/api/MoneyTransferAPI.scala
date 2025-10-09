@@ -53,6 +53,9 @@ object MoneyTransferAPI {
               transferRequest.amount
             )
           )
+          record <- DataService.findBalanceByAccountNumbers(transferRequest.fromAccount,transferRequest.toAccount)
+          _ <- ZIO.logInfo("...")
+          _ <- ZIO.logInfo(s"record: $record")
         } yield Response.json(s"""Transfer completed successfully\n""")
       )
         .catchAll { error =>
