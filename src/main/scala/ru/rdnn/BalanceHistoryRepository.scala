@@ -11,7 +11,7 @@ trait BalanceHistoryRepository {
   def insertNewBalance(newBalance: BalanceHistory): ZIO[DataSource, Throwable, Unit]
   def findBalanceByAccountNumbers(accountFrom: String,
                                   accountTo: String
-  ): ZIO[DataSource, Throwable, (Option[BalanceHistory], Option[BalanceHistory])]
+  ): ZIO[DataSource, Throwable, (BalanceHistory, BalanceHistory)]
 }
 
 class BalanceHistoryRepositoryImpl(dataSource: DataSource) extends BalanceHistoryRepository {
@@ -41,7 +41,7 @@ class BalanceHistoryRepositoryImpl(dataSource: DataSource) extends BalanceHistor
   override def findBalanceByAccountNumbers(
     accountFrom: String,
     accountTo: String
-  ): ZIO[DataSource, Throwable, (Option[BalanceHistory], Option[BalanceHistory])] =
+  ): ZIO[DataSource, Throwable, (BalanceHistory, BalanceHistory)] =
     ZIO.service[DataSource].flatMap { ds =>
       for {
         fromBalance <- ctx
@@ -60,7 +60,7 @@ class BalanceHistoryRepositoryImpl(dataSource: DataSource) extends BalanceHistor
               .take(1)
           )
           .provide(ZLayer.succeed(ds))
-      } yield (fromBalance.headOption, toBalance.headOption)
+      } yield (fromBalance.head, toBalance.head)
     }
 
 }

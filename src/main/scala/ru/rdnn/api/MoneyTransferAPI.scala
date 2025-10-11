@@ -2,9 +2,10 @@ package ru.rdnn.api
 
 import zio._
 import ru.rdnn.DataService
-import ru.rdnn.dto.{Transactions, TransferRequest, TransferRequestByAN}
+import ru.rdnn.dto.{BalanceHistory, Transactions, TransferRequest, TransferRequestByAN}
 import zio.http.{Response, _}
 import zio.json._
+import java.time.ZonedDateTime
 
 import javax.sql.DataSource
 
@@ -53,9 +54,31 @@ object MoneyTransferAPI {
               transferRequest.amount
             )
           )
-          record <- DataService.findBalanceByAccountNumbers(transferRequest.fromAccount,transferRequest.toAccount)
-          _ <- ZIO.logInfo("...")
-          _ <- ZIO.logInfo(s"record: $record")
+          record <- DataService.findBalanceByAccountNumbers(transferRequest.fromAccount, transferRequest.toAccount)
+          _      <- ZIO.logInfo(s"record: $record")
+          balanceFrom <- ZIO.attempt(
+            BalanceHistory(
+              record._1.id,
+              record._1.account_number,
+              record._1.new_balance,
+              record._1.new_balance - transferRequest.amount,
+              transferRequest.amount,
+              ZonedDateTime.now()
+            )
+          )
+          balanceTo <- ZIO.attempt(
+            BalanceHistory(
+              record._2.id,
+              record._2.account_number,
+              record._2.new_balance,
+              record._2.new_balance + transferRequest.amount,
+              transferRequest.amount,
+              ZonedDateTime.now()
+            )
+          )
+          _ <- ZIO.logInfo(s"\nBalance From: $balanceFrom\nBalance To: $balanceTo")
+          _ <- DataService.insertBalanceHistory(balanceFrom)
+          _ <- DataService.insertBalanceHistory(balanceTo)
         } yield Response.json(s"""Transfer completed successfully\n""")
       )
         .catchAll { error =>

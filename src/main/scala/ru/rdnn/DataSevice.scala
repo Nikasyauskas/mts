@@ -14,11 +14,10 @@ trait DataService {
   def provideTransaction(fromAccount: String, toAccount: String, amount: Double): ZIO[DataSource, Throwable, Unit]
   def insertTransaction(transaction: Transactions): ZIO[DataSource, Throwable, Unit]
   def insertBalanceHistory(newBalance: BalanceHistory): ZIO[DataSource, Throwable, Unit]
-
   def findBalanceByAccountNumbers(
     accountFrom: String,
     accountTo: String
-  ): ZIO[DataSource, Throwable, (Option[BalanceHistory], Option[BalanceHistory])]
+  ): ZIO[DataSource, Throwable, (BalanceHistory, BalanceHistory)]
 }
 
 class DataServiceImpl(
@@ -102,7 +101,7 @@ class DataServiceImpl(
   def findBalanceByAccountNumbers(
     accountFrom: String,
     accountTo: String
-  ): ZIO[DataSource, Throwable, (Option[BalanceHistory], Option[BalanceHistory])] =
+  ): ZIO[DataSource, Throwable, (BalanceHistory, BalanceHistory)] =
     balanceHistoryRepository.findBalanceByAccountNumbers(accountFrom, accountTo)
 
 }
@@ -139,7 +138,7 @@ object DataService {
   def findBalanceByAccountNumbers(
     accountFrom: String,
     accountTo: String
-  ): ZIO[DataSource with DataService, Throwable, (Option[BalanceHistory], Option[BalanceHistory])] =
+  ): ZIO[DataSource with DataService, Throwable, (BalanceHistory, BalanceHistory)] =
     ZIO.service[DataService].flatMap(_.findBalanceByAccountNumbers(accountFrom, accountTo))
 
   val live: ZLayer[UserRepository with TransactionsRepository with BalanceHistoryRepository, Nothing, DataService] =
