@@ -6,7 +6,8 @@ object Dependencies {
   lazy val ZioConfigVersion = "4.0.2"
   lazy val ZIOHttpVersion = "3.3.3"
   lazy val zioQuillVersion = "4.8.5"
-  lazy val zioLoggingVersion = "2.5.1"
+  lazy val zioLoggingVersion = "2.1.15"
+  lazy val zioJsonVersion = "0.7.42"
 
   lazy val LiquibaseVersion = "3.4.2"
   lazy val PostgresVersion = "42.3.1"
@@ -29,6 +30,7 @@ object Dependencies {
   lazy val zioHttp = "dev.zio" %% "zio-http" % ZIOHttpVersion
   lazy val zioQuill = "io.getquill" %% "quill-jdbc-zio" % zioQuillVersion
   lazy val zioLogging = "dev.zio" %% "zio-logging" % zioLoggingVersion
+  lazy val zioJson = "dev.zio" %% "zio-json" % zioJsonVersion
 
   lazy val liquibase = "org.liquibase" % "liquibase-core" % LiquibaseVersion
   lazy val postgres = "org.postgresql" % "postgresql" % PostgresVersion

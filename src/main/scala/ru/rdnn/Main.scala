@@ -1,25 +1,31 @@
 package ru.rdnn
 
 import zio._
-import ru.rdnn.AppConf
 import zio.config.typesafe.TypesafeConfigProvider
+import ru.rdnn.configuration.Configuration
+import ru.rdnn.api.MoneyTransferAPI
+import zio.http.Server
 
 object Main extends ZIOAppDefault {
 
-  override val bootstrap =
+  override val bootstrap: ULayer[Unit] =
     Runtime.setConfigProvider(
-        TypesafeConfigProvider
-          .fromResourcePath()
+      TypesafeConfigProvider
+        .fromResourcePath()
+    ) ++ Logger.liveCustomLogger
+
+  override def run: ZIO[Any, Exception, Unit] = for {
+    conf <- Configuration.config
+    _ <- ZIO.logInfo(s"test configuration ${conf.server.host}:${conf.server.port}")
+    _ <- Server.serve(MoneyTransferAPI.api)
+      .provide(
+        Server.default,
+        db.quillDS,
+        UserRepository.live,
+        TransactionsRepository.live,
+        BalanceHistoryRepository.live,
+        DataService.live
       )
-
-  private def app: ZIO[Any, Config.Error, Unit] = for {
-    conf <- ZIO.config[Conf](AppConf.conf)
-    _ <- ZIO.logInfo(
-      s"""
-        |host: ${conf.host}
-        |port: ${conf.port}
-        |""".stripMargin)
+      .orDie
   } yield ()
-
-  override def run: ZIO[Any, Config.Error, Unit] = app
 }
