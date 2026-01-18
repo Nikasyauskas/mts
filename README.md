@@ -52,6 +52,7 @@ docker compose up -d
 После запуска можно проверить подключение:
 
 ```bash
+# возможно вам нужна утилита psql
 docker compose exec postgres psql -U postgres -c "SELECT * FROM bank.users;"
 ```
 
