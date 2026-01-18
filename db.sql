@@ -7,7 +7,7 @@ CREATE TABLE bank.users (
     balance DECIMAL(15,2) NOT NULL DEFAULT 0.00,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    is_active BOOLEAN DEFAULT TRUE,
+    is_active BOOLEAN DEFAULT TRUE
 );
 
 INSERT INTO bank.users (id, account_number, balance, created_at, updated_at, is_active) VALUES
@@ -22,7 +22,7 @@ CREATE TABLE bank.transactions (
     from_account_id VARCHAR(34) NOT NULL,
     to_account_id VARCHAR(34) NOT NULL,
     amount DECIMAL(15,2) NOT NULL CHECK (amount > 0),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Таблица для хранения истории изменений баланса

@@ -1,5 +1,8 @@
 .bsp
+.env
 .idea
+.metals
+.vscode
 project/project
 project/target
 target
