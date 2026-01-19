@@ -52,6 +52,7 @@ docker compose up -d
 После запуска можно проверить подключение:
 
 ```bash
+# возможно вам нужна утилита psql
 docker compose exec postgres psql -U postgres -c "SELECT * FROM bank.users;"
 ```
 
@@ -67,7 +68,7 @@ sbt run
 2026-01-17T23:11:36.460907+03:00 INFO msg:="Server started"
 ```
 
-## 3. Запуск frontend'а (mts-frontend.py)
+## 3. Запуск frontend'а (mts-frontend.py) 
 
 ### 3.1 Создание виртуального окружения
 
