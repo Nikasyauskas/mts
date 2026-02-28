@@ -20,7 +20,7 @@ class TransactionsRepositoryImpl(dataSource: DataSource) extends TransactionsRep
   }
   override def listTransactions: ZIO[DataSource, Throwable, List[Transactions]] =
     ZIO.service[DataSource].flatMap { ds =>
-      ctx.run(backTransactionsSchema).provide(ZLayer.succeed(ds))
+      ctx.run(backTransactionsSchema)
     }
 
   override def insertTransaction(transaction: Transactions): ZIO[DataSource, Throwable, Unit] =
@@ -28,7 +28,7 @@ class TransactionsRepositoryImpl(dataSource: DataSource) extends TransactionsRep
       ctx.run(
         backTransactionsSchema
           .insertValue(lift(transaction))
-      ).unit.provide(ZLayer.succeed(ds))
+      ).unit
     }
 }
 

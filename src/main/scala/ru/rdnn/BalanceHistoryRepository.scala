@@ -24,7 +24,7 @@ class BalanceHistoryRepositoryImpl(dataSource: DataSource) extends BalanceHistor
 
   override def listBalanceHistory: ZIO[DataSource, Throwable, List[BalanceHistory]] =
     ZIO.service[DataSource].flatMap { ds =>
-      ctx.run(bankBalanceHistorySchema).provide(ZLayer.succeed(ds))
+      ctx.run(bankBalanceHistorySchema)
     }
 
   override def insertNewBalance(newBalance: BalanceHistory): ZIO[DataSource, Throwable, Unit] =
@@ -35,7 +35,6 @@ class BalanceHistoryRepositoryImpl(dataSource: DataSource) extends BalanceHistor
             .insertValue(lift(newBalance))
         )
         .unit
-        .provide(ZLayer.succeed(ds))
     }
 
   override def findBalanceByAccountNumbers(
@@ -51,7 +50,6 @@ class BalanceHistoryRepositoryImpl(dataSource: DataSource) extends BalanceHistor
               .sortBy(_.created_at)(Ord.desc)
               .take(1)
           )
-          .provide(ZLayer.succeed(ds))
         toBalance <- ctx
           .run(
             bankBalanceHistorySchema
@@ -59,7 +57,6 @@ class BalanceHistoryRepositoryImpl(dataSource: DataSource) extends BalanceHistor
               .sortBy(_.created_at)(Ord.desc)
               .take(1)
           )
-          .provide(ZLayer.succeed(ds))
       } yield (fromBalance.head, toBalance.head)
     }
 

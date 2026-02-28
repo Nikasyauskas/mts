@@ -25,7 +25,7 @@ class UserRepositoryImpl(dataSource: DataSource) extends UserRepository {
 
   def listUserAccounts: ZIO[DataSource, Throwable, List[UserAccount]] =
     ZIO.service[DataSource].flatMap { ds =>
-      ctx.run(backUsersSchema).provide(ZLayer.succeed(ds))
+      ctx.run(backUsersSchema)
     }
 
   def updateUserAccount(account: UserAccount): ZIO[DataSource, Throwable, Unit] =
@@ -38,7 +38,6 @@ class UserRepositoryImpl(dataSource: DataSource) extends UserRepository {
             .updateValue(lift(account))
         )
         .unit
-        .provide(ZLayer.succeed(ds))
     }
 
   def findAccountById(id: java.util.UUID): ZIO[DataSource, Throwable, Option[UserAccount]] =
@@ -49,7 +48,6 @@ class UserRepositoryImpl(dataSource: DataSource) extends UserRepository {
             .filter(_.id == lift(id))
         )
         .map(_.headOption)
-        .provide(ZLayer.succeed(ds))
     }
 
   override def findByAccountNumber(accountNumber: String): ZIO[DataSource, Throwable, Option[UserAccount]] =
@@ -60,7 +58,6 @@ class UserRepositoryImpl(dataSource: DataSource) extends UserRepository {
             .filter(_.account_number == lift(accountNumber))
         )
         .map(_.headOption)
-        .provide(ZLayer.succeed(ds))
     }
 }
 
