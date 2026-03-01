@@ -19,14 +19,8 @@ object MoneyTransferAPI {
           transferRequest <- ZIO
             .fromEither(body.fromJson[TransferRequestByAN])
             .mapError(err => new Exception(s"Invalid JSON: $err"))
-          _ <- DataService.provideTransaction(
-            transferRequest.fromAccount,
-            transferRequest.toAccount,
-            transferRequest.amount
-          )
-          _ <- ZIO.logInfo(
-            s"${transferRequest.amount} were transferred from account ${transferRequest.fromAccount} to ${transferRequest.toAccount}"
-          )
+          _ <- DataService.provideTransaction(transferRequest)
+          _ <- ZIO.logInfo(s"${transferRequest.amount} were transferred from account ${transferRequest.fromAccount} to ${transferRequest.toAccount}")
           userAccount <- DataService.findUserByAccountNumber(transferRequest.fromAccount)
           _ <- DataService.insertTransaction(
             Transactions(

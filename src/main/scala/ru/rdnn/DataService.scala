@@ -1,17 +1,13 @@
 package ru.rdnn
 
-import ru.rdnn.dto.{BalanceHistory, BalanceHistoryRepository, Transactions, TransactionsRepository, UserAccount, UserRepository}
+import ru.rdnn.dto.{BalanceHistory, BalanceHistoryRepository, Transactions, TransactionsRepository, TransferRequestByAN, UserAccount, UserRepository}
 import zio.{ZIO, ZLayer}
 
-import java.util.UUID
 import javax.sql.DataSource
 
 trait DataService {
-  def listUserAccounts: ZIO[DataSource, Throwable, List[UserAccount]]
   def findUserByAccountNumber(accountNumber: String): ZIO[DataSource, Throwable, Option[UserAccount]]
-  def updateUserAccount(userAccount: UserAccount): ZIO[DataSource, Throwable, Unit]
-  def provideTransaction(fromAccountId: UUID, toAccountId: UUID, amount: Double): ZIO[DataSource, Throwable, Unit]
-  def provideTransaction(fromAccount: String, toAccount: String, amount: Double): ZIO[DataSource, Throwable, Unit]
+  def provideTransaction(transferRequest: TransferRequestByAN): ZIO[DataSource, Throwable, Unit]
   def insertTransaction(transaction: Transactions): ZIO[DataSource, Throwable, Unit]
   def insertBalanceHistory(newBalance: BalanceHistory): ZIO[DataSource, Throwable, Unit]
   def findBalanceByAccountNumbers(
@@ -26,67 +22,31 @@ class DataServiceImpl(
   balanceHistoryRepository: BalanceHistoryRepository
 ) extends DataService {
 
-  def listUserAccounts: ZIO[DataSource, Throwable, List[UserAccount]] =
-    repository.listUserAccounts
-
   def findUserByAccountNumber(accountNumber: String): ZIO[DataSource, Throwable, Option[UserAccount]] =
     repository.findByAccountNumber(accountNumber)
 
-  def updateUserAccount(userAccount: UserAccount): ZIO[DataSource, Throwable, Unit] =
-    repository.updateUserAccount(userAccount)
-
-  def provideTransaction(fromAccountId: UUID,
-                         toAccountId: UUID,
-                         amount: Double
-  ): ZIO[DataSource, Throwable, Unit] =
+  def provideTransaction(transferRequest: TransferRequestByAN): ZIO[DataSource, Throwable, Unit] =
     for {
-      fromAccountOpt <- repository.findAccountById(fromAccountId)
-      toAccountOpt   <- repository.findAccountById(toAccountId)
+      fromAccountOpt <- repository.findByAccountNumber(transferRequest.fromAccount)
+      toAccountOpt   <- repository.findByAccountNumber(transferRequest.toAccount)
       fromAccount <- ZIO
-        .fromOption(fromAccountOpt) //TODO: exception hierarchy
-        .mapError(_ => new RuntimeException(s"Source account with id $fromAccountId not found"))
+        .fromOption(fromAccountOpt) // TODO: exception hierarchy
+        .mapError(_ => new RuntimeException(s"Source account with id ${transferRequest.fromAccount} not found"))
       toAccount <- ZIO
-        .fromOption(toAccountOpt)
-        .mapError(_ => new RuntimeException(s"Destination account with id $toAccountId not found"))
+        .fromOption(toAccountOpt) // TODO: exception hierarchy
+        .mapError(_ => new RuntimeException(s"Destination account with id ${transferRequest.toAccount} not found"))
       _ <- ZIO
-        .fail(new RuntimeException(s"Insufficient balance. Required: $amount, Available: ${fromAccount.balance}"))
-        .when(fromAccount.balance < amount)
+        .fail(new RuntimeException(s"Insufficient balance. Required: ${transferRequest.amount}, Available: ${fromAccount.balance}"))
+        .when(fromAccount.balance < transferRequest.amount)
       _ <- ZIO
         .fail(new RuntimeException("Transaction amount must be positive"))
-        .when(amount <= 0)
-      // Execute the transaction atomically //TODO: check it in otus.ru project
+        .when(transferRequest.amount <= 0)
+      // // TODO: Execute the transaction atomically. check it in otus.ru project or John'De'Goes
       _ <- ZIO
         .collectAllPar(
           List(
-            repository.updateUserAccount(fromAccount.copy(balance = fromAccount.balance - amount)),
-            repository.updateUserAccount(toAccount.copy(balance = toAccount.balance + amount))
-          )
-        )
-        .unit
-    } yield ()
-
-  def provideTransaction(fromAccount: String, toAccount: String, amount: Double): ZIO[DataSource, Throwable, Unit] =
-    for {
-      fromAccountOpt <- repository.findByAccountNumber(fromAccount)
-      toAccountOpt   <- repository.findByAccountNumber(toAccount)
-      fromAccount <- ZIO
-        .fromOption(fromAccountOpt) //TODO: exception hierarchy
-        .mapError(_ => new RuntimeException(s"Source account with id $fromAccount not found"))
-      toAccount <- ZIO
-        .fromOption(toAccountOpt)
-        .mapError(_ => new RuntimeException(s"Destination account with id $toAccount not found"))
-      _ <- ZIO
-        .fail(new RuntimeException(s"Insufficient balance. Required: $amount, Available: ${fromAccount.balance}"))
-        .when(fromAccount.balance < amount)
-      _ <- ZIO
-        .fail(new RuntimeException("Transaction amount must be positive"))
-        .when(amount <= 0)
-      // Execute the transaction atomically //TODO: check it in otus.ru project
-      _ <- ZIO
-        .collectAllPar(
-          List(
-            repository.updateUserAccount(fromAccount.copy(balance = fromAccount.balance - amount)),
-            repository.updateUserAccount(toAccount.copy(balance = toAccount.balance + amount))
+            repository.updateUserAccount(fromAccount.copy(balance = fromAccount.balance - transferRequest.amount)),
+            repository.updateUserAccount(toAccount.copy(balance = toAccount.balance + transferRequest.amount))
           )
         )
         .unit
@@ -108,26 +68,11 @@ class DataServiceImpl(
 
 object DataService {
 
-  def listUserAccounts: ZIO[DataSource with DataService, Throwable, List[UserAccount]] =
-    ZIO.service[DataService].flatMap(_.listUserAccounts)
-
   def findUserByAccountNumber(accountNumber: String): ZIO[DataSource with DataService, Throwable, Option[UserAccount]] =
     ZIO.service[DataService].flatMap(_.findUserByAccountNumber(accountNumber))
 
-  def updateUserAccount(userAccount: UserAccount): ZIO[DataSource with DataService, Throwable, Unit] =
-    ZIO.service[DataService].flatMap(_.updateUserAccount(userAccount))
-
-  def provideTransaction(fromAccountId: java.util.UUID,
-                         toAccountId: java.util.UUID,
-                         amount: Double
-  ): ZIO[DataSource with DataService, Throwable, Unit] =
-    ZIO.service[DataService].flatMap(_.provideTransaction(fromAccountId, toAccountId, amount))
-
-  def provideTransaction(fromAccountId: String,
-                         toAccountId: String,
-                         amount: Double
-  ): ZIO[DataSource with DataService, Throwable, Unit] =
-    ZIO.service[DataService].flatMap(_.provideTransaction(fromAccountId, toAccountId, amount))
+  def provideTransaction(transferRequest: TransferRequestByAN): ZIO[DataSource with DataService, Throwable, Unit] =
+    ZIO.service[DataService].flatMap(_.provideTransaction(transferRequest))
 
   def insertTransaction(transaction: Transactions): ZIO[DataSource with DataService, Throwable, Unit] =
     ZIO.service[DataService].flatMap(_.insertTransaction(transaction))
