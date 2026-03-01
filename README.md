@@ -121,3 +121,13 @@ curl -X POST http://localhost:8080/transfer/account-number \
     "amount": 100.00
   }'
 ```
+
+1. [x] переименовать DataSevies в DataServes
+2. [x] комбинирование всех *Repository в DataServes
+3. [x] рефакторинг по улучшению кода
+4. [ ] упаковать приложение в docker контейнер
+5. [ ] подключить миграции
+6. [ ] аутентификация
+7. [ ] расширение базы данных
+8. [ ] транзакционность на уровне кода
+9. [ ] error management
