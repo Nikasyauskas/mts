@@ -1,9 +1,8 @@
-package ru.rdnn
+package ru.rdnn.dto
 
-import ru.rdnn.dto.{Transactions, UserAccount}
-import zio.{ULayer, ZIO, ZLayer}
+import ru.rdnn.db
+import zio.{ZIO, ZLayer}
 
-import java.util.UUID
 import javax.sql.DataSource
 
 trait TransactionsRepository {

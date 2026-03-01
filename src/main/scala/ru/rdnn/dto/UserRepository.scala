@@ -1,7 +1,7 @@
-package ru.rdnn
+package ru.rdnn.dto
 
+import ru.rdnn.db
 import zio.{ZIO, ZLayer}
-import ru.rdnn.dto.UserAccount
 
 import java.util.UUID
 import javax.sql.DataSource

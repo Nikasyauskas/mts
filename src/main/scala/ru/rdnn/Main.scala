@@ -4,6 +4,7 @@ import zio._
 import zio.config.typesafe.TypesafeConfigProvider
 import ru.rdnn.configuration.Configuration
 import ru.rdnn.api.MoneyTransferAPI
+import ru.rdnn.dto.{BalanceHistoryRepository, TransactionsRepository, UserRepository}
 import zio.http.Server
 
 object Main extends ZIOAppDefault {

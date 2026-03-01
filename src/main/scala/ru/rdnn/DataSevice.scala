@@ -1,6 +1,6 @@
 package ru.rdnn
 
-import ru.rdnn.dto.{BalanceHistory, Transactions, UserAccount}
+import ru.rdnn.dto.{BalanceHistory, BalanceHistoryRepository, Transactions, TransactionsRepository, UserAccount, UserRepository}
 import zio.{ZIO, ZLayer}
 
 import java.util.UUID

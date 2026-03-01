@@ -1,8 +1,8 @@
-package ru.rdnn
+package ru.rdnn.dto
 
-import ru.rdnn.dto.BalanceHistory
-import zio.{ZIO, ZLayer}
 import io.getquill.Ord
+import ru.rdnn.db
+import zio.{ZIO, ZLayer}
 
 import javax.sql.DataSource
 
