@@ -3,17 +3,24 @@ package ru.rdnn
 import ru.rdnn.dto.{BalanceHistory, BalanceHistoryRepository, Transactions, TransactionsRepository, TransferRequestByAN, UserAccount, UserRepository}
 import zio.{ZIO, ZLayer}
 
+import java.time.ZonedDateTime
 import javax.sql.DataSource
 
 trait DataService {
   def findUserByAccountNumber(accountNumber: String): ZIO[DataSource, Throwable, Option[UserAccount]]
+
   def provideTransaction(transferRequest: TransferRequestByAN): ZIO[DataSource, Throwable, Unit]
+
   def insertTransaction(transaction: Transactions): ZIO[DataSource, Throwable, Unit]
+
   def insertBalanceHistory(newBalance: BalanceHistory): ZIO[DataSource, Throwable, Unit]
+
   def findBalanceByAccountNumbers(
-    accountFrom: String,
-    accountTo: String
-  ): ZIO[DataSource, Throwable, (BalanceHistory, BalanceHistory)]
+                                   accountFrom: String,
+                                   accountTo: String
+                                 ): ZIO[DataSource, Throwable, (BalanceHistory, BalanceHistory)]
+
+  def transactionComplete(transferRequest: TransferRequestByAN): ZIO[DataSource with DataService, Throwable, Unit]
 }
 
 class DataServiceImpl(
@@ -64,6 +71,45 @@ class DataServiceImpl(
   ): ZIO[DataSource, Throwable, (BalanceHistory, BalanceHistory)] =
     balanceHistoryRepository.findBalanceByAccountNumbers(accountFrom, accountTo)
 
+  def transactionComplete(transferRequest: TransferRequestByAN): ZIO[DataSource with DataService, Throwable, Unit] = for {
+    _ <- DataService.provideTransaction(transferRequest)
+    _ <- ZIO.logInfo(s"${transferRequest.amount} were transferred from account ${transferRequest.fromAccount} to ${transferRequest.toAccount}")
+    userAccount <- DataService.findUserByAccountNumber(transferRequest.fromAccount)
+    _ <- DataService.insertTransaction(
+      Transactions(
+        userAccount.get.id,
+        transferRequest.fromAccount,
+        transferRequest.toAccount,
+        transferRequest.amount
+      )
+    )
+    record <- DataService.findBalanceByAccountNumbers(transferRequest.fromAccount, transferRequest.toAccount)
+    _ <- ZIO.logInfo(s"record: $record")
+    balanceFrom <- ZIO.attempt(
+      BalanceHistory(
+        record._1.id,
+        record._1.account_number,
+        record._1.new_balance,
+        record._1.new_balance - transferRequest.amount,
+        transferRequest.amount,
+        ZonedDateTime.now()
+      )
+    )
+    balanceTo <- ZIO.attempt(
+      BalanceHistory(
+        record._2.id,
+        record._2.account_number,
+        record._2.new_balance,
+        record._2.new_balance + transferRequest.amount,
+        transferRequest.amount,
+        ZonedDateTime.now()
+      )
+    )
+    _ <- ZIO.logInfo(s"\nBalance From: $balanceFrom\nBalance To: $balanceTo")
+    _ <- DataService.insertBalanceHistory(balanceFrom)
+    _ <- DataService.insertBalanceHistory(balanceTo)
+  } yield ()
+
 }
 
 object DataService {
@@ -79,6 +125,9 @@ object DataService {
 
   def insertBalanceHistory(newBalance: BalanceHistory): ZIO[DataSource with DataService, Throwable, Unit] =
     ZIO.service[DataService].flatMap(_.insertBalanceHistory(newBalance))
+
+  def transactionComplete(transferRequest: TransferRequestByAN): ZIO[DataSource with DataService, Throwable, Unit] =
+    ZIO.service[DataService].flatMap(_.transactionComplete(transferRequest))
 
   def findBalanceByAccountNumbers(
     accountFrom: String,

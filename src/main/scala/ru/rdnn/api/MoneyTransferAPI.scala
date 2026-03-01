@@ -19,42 +19,7 @@ object MoneyTransferAPI {
           transferRequest <- ZIO
             .fromEither(body.fromJson[TransferRequestByAN])
             .mapError(err => new Exception(s"Invalid JSON: $err"))
-          _ <- DataService.provideTransaction(transferRequest)
-          _ <- ZIO.logInfo(s"${transferRequest.amount} were transferred from account ${transferRequest.fromAccount} to ${transferRequest.toAccount}")
-          userAccount <- DataService.findUserByAccountNumber(transferRequest.fromAccount)
-          _ <- DataService.insertTransaction(
-            Transactions(
-              userAccount.get.id,
-              transferRequest.fromAccount,
-              transferRequest.toAccount,
-              transferRequest.amount
-            )
-          )
-          record <- DataService.findBalanceByAccountNumbers(transferRequest.fromAccount, transferRequest.toAccount)
-          _      <- ZIO.logInfo(s"record: $record")
-          balanceFrom <- ZIO.attempt(
-            BalanceHistory(
-              record._1.id,
-              record._1.account_number,
-              record._1.new_balance,
-              record._1.new_balance - transferRequest.amount,
-              transferRequest.amount,
-              ZonedDateTime.now()
-            )
-          )
-          balanceTo <- ZIO.attempt(
-            BalanceHistory(
-              record._2.id,
-              record._2.account_number,
-              record._2.new_balance,
-              record._2.new_balance + transferRequest.amount,
-              transferRequest.amount,
-              ZonedDateTime.now()
-            )
-          )
-          _ <- ZIO.logInfo(s"\nBalance From: $balanceFrom\nBalance To: $balanceTo")
-          _ <- DataService.insertBalanceHistory(balanceFrom)
-          _ <- DataService.insertBalanceHistory(balanceTo)
+          _ <- DataService.transactionComplete(transferRequest)
         } yield Response.json(s"""Transfer completed successfully\n""")
       )
         .catchAll { error =>
