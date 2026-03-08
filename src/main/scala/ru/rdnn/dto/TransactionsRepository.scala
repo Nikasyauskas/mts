@@ -6,7 +6,6 @@ import zio.{ZIO, ZLayer}
 import javax.sql.DataSource
 
 trait TransactionsRepository {
-  def listTransactions: ZIO[DataSource, Throwable, List[Transactions]]
   def insertTransaction(transaction: Transactions): ZIO[DataSource, Throwable, Unit]
 }
 
@@ -17,10 +16,6 @@ class TransactionsRepositoryImpl(dataSource: DataSource) extends TransactionsRep
   private lazy val backTransactionsSchema = quote {
     querySchema[Transactions]("""bank.transactions""")
   }
-  override def listTransactions: ZIO[DataSource, Throwable, List[Transactions]] =
-    ZIO.service[DataSource].flatMap { ds =>
-      ctx.run(backTransactionsSchema)
-    }
 
   override def insertTransaction(transaction: Transactions): ZIO[DataSource, Throwable, Unit] =
     ZIO.service[DataSource].flatMap { ds =>

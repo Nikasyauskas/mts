@@ -1,145 +1,107 @@
 package ru.rdnn
 
-import ru.rdnn.dto.{BalanceHistory, BalanceHistoryRepository, Transactions, TransactionsRepository, TransferRequestByAN, UserAccount, UserRepository}
+import ru.rdnn.dto.{AccountsRepository, BalanceHistory, BalanceHistoryRepository, Transactions, TransactionsRepository, TransferRequest, User, UserRepository}
 import zio.{ZIO, ZLayer}
 
 import java.time.ZonedDateTime
+import java.util.UUID
 import javax.sql.DataSource
 
 trait DataService {
-  def findUserByAccountNumber(accountNumber: String): ZIO[DataSource, Throwable, Option[UserAccount]]
-
-  def provideTransaction(transferRequest: TransferRequestByAN): ZIO[DataSource, Throwable, Unit]
-
-  def insertTransaction(transaction: Transactions): ZIO[DataSource, Throwable, Unit]
-
-  def insertBalanceHistory(newBalance: BalanceHistory): ZIO[DataSource, Throwable, Unit]
-
-  def findBalanceByAccountNumbers(
-                                   accountFrom: String,
-                                   accountTo: String
-                                 ): ZIO[DataSource, Throwable, (BalanceHistory, BalanceHistory)]
-
-  def transactionComplete(transferRequest: TransferRequestByAN): ZIO[DataSource with DataService, Throwable, Unit]
+  def updateAccounts(transferRequest: TransferRequest): ZIO[DataSource, Throwable, Unit]
+  def commitTransaction(transferRequest: TransferRequest): ZIO[DataSource, Throwable, Unit]
+  def updateBalanceHistory(transferRequest: TransferRequest): ZIO[DataSource, Throwable, Unit]
+  def provideTransaction(transferRequest: TransferRequest): ZIO[DataSource with DataService, Throwable, Unit]
 }
 
 class DataServiceImpl(
-  repository: UserRepository,
+  userRepository: UserRepository,
+  accountsRepository: AccountsRepository,
   transactionsRepository: TransactionsRepository,
   balanceHistoryRepository: BalanceHistoryRepository
 ) extends DataService {
 
-  def findUserByAccountNumber(accountNumber: String): ZIO[DataSource, Throwable, Option[UserAccount]] =
-    repository.findByAccountNumber(accountNumber)
-
-  def provideTransaction(transferRequest: TransferRequestByAN): ZIO[DataSource, Throwable, Unit] =
+  def updateAccounts(transferRequest: TransferRequest): ZIO[DataSource, Throwable, Unit] =
     for {
-      fromAccountOpt <- repository.findByAccountNumber(transferRequest.fromAccount)
-      toAccountOpt   <- repository.findByAccountNumber(transferRequest.toAccount)
-      fromAccount <- ZIO
-        .fromOption(fromAccountOpt) // TODO: exception hierarchy
-        .mapError(_ => new RuntimeException(s"Source account with id ${transferRequest.fromAccount} not found"))
-      toAccount <- ZIO
-        .fromOption(toAccountOpt) // TODO: exception hierarchy
-        .mapError(_ => new RuntimeException(s"Destination account with id ${transferRequest.toAccount} not found"))
+      accountFrom <- accountsRepository.findAccountByAccountNumber(transferRequest.fromAccount)
+      accountTo <- accountsRepository.findAccountByAccountNumber(transferRequest.toAccount)
       _ <- ZIO
-        .fail(new RuntimeException(s"Insufficient balance. Required: ${transferRequest.amount}, Available: ${fromAccount.balance}"))
-        .when(fromAccount.balance < transferRequest.amount)
+        .fail(new RuntimeException(s"Insufficient balance. Required: ${transferRequest.amount}, Available: ${accountFrom.balance}"))
+        .when(accountFrom.balance < transferRequest.amount)
       _ <- ZIO
         .fail(new RuntimeException("Transaction amount must be positive"))
         .when(transferRequest.amount <= 0)
       // // TODO: Execute the transaction atomically. check it in otus.ru project or John'De'Goes
-      _ <- ZIO
-        .collectAllPar(
-          List(
-            repository.updateUserAccount(fromAccount.copy(balance = fromAccount.balance - transferRequest.amount)),
-            repository.updateUserAccount(toAccount.copy(balance = toAccount.balance + transferRequest.amount))
-          )
-        )
-        .unit
+      _ <- accountsRepository.withdrawalAccount(accountFrom, transferRequest.amount)
+      _ <- accountsRepository.creditAccount(accountTo, transferRequest.amount)
     } yield ()
 
-  def insertTransaction(transaction: Transactions): ZIO[DataSource, Throwable, Unit] =
-    transactionsRepository.insertTransaction(transaction)
-
-  def insertBalanceHistory(newBalance: BalanceHistory): ZIO[DataSource, Throwable, Unit] =
-    balanceHistoryRepository.insertNewBalance(newBalance)
-
-  def findBalanceByAccountNumbers(
-    accountFrom: String,
-    accountTo: String
-  ): ZIO[DataSource, Throwable, (BalanceHistory, BalanceHistory)] =
-    balanceHistoryRepository.findBalanceByAccountNumbers(accountFrom, accountTo)
-
-  def transactionComplete(transferRequest: TransferRequestByAN): ZIO[DataSource with DataService, Throwable, Unit] = for {
-    _ <- DataService.provideTransaction(transferRequest)
-    _ <- ZIO.logInfo(s"${transferRequest.amount} were transferred from account ${transferRequest.fromAccount} to ${transferRequest.toAccount}")
-    userAccount <- DataService.findUserByAccountNumber(transferRequest.fromAccount)
-    _ <- DataService.insertTransaction(
+  def commitTransaction(transferRequest: TransferRequest): ZIO[DataSource, Throwable, Unit] = for {
+    transaction <- ZIO.attempt {
       Transactions(
-        userAccount.get.id,
-        transferRequest.fromAccount,
-        transferRequest.toAccount,
-        transferRequest.amount
+        id = UUID.randomUUID(),
+        from_account = transferRequest.fromAccount,
+        to_account = transferRequest.toAccount,
+        amount = transferRequest.amount,
+        currency_code = "RUB",
+        exchange_rate = 00.0.toFloat, // TODO "stub" for adding the exchange_rate parameter in the future
+        created_at = ZonedDateTime.now()
       )
-    )
-    record <- DataService.findBalanceByAccountNumbers(transferRequest.fromAccount, transferRequest.toAccount)
-    _ <- ZIO.logInfo(s"record: $record")
-    balanceFrom <- ZIO.attempt(
+    }
+      _ <- transactionsRepository.insertTransaction(transaction)
+  } yield ()
+
+  def updateBalanceHistory(transferRequest: TransferRequest): ZIO[DataSource, Throwable, Unit] = for {
+    balanceHistory <- balanceHistoryRepository.findBalanceByAccountNumbers(transferRequest)
+    balanceHistoryFrom <- ZIO.attempt {
       BalanceHistory(
-        record._1.id,
-        record._1.account_number,
-        record._1.new_balance,
-        record._1.new_balance - transferRequest.amount,
-        transferRequest.amount,
-        ZonedDateTime.now()
+        id = UUID.randomUUID(),
+        account_number = transferRequest.fromAccount,
+        old_balance = balanceHistory._1.new_balance,
+        new_balance = balanceHistory._1.new_balance - transferRequest.amount,
+        amount = transferRequest.amount,
+        created_at = ZonedDateTime.now()
       )
-    )
-    balanceTo <- ZIO.attempt(
+    }
+    balanceHistoryTo <- ZIO.attempt {
       BalanceHistory(
-        record._2.id,
-        record._2.account_number,
-        record._2.new_balance,
-        record._2.new_balance + transferRequest.amount,
-        transferRequest.amount,
-        ZonedDateTime.now()
+        id = UUID.randomUUID(),
+        account_number = transferRequest.toAccount,
+        old_balance = balanceHistory._2.new_balance,
+        new_balance = balanceHistory._2.new_balance + transferRequest.amount,
+        amount = transferRequest.amount,
+        created_at = ZonedDateTime.now()
       )
-    )
-    _ <- ZIO.logInfo(s"\nBalance From: $balanceFrom\nBalance To: $balanceTo")
-    _ <- DataService.insertBalanceHistory(balanceFrom)
-    _ <- DataService.insertBalanceHistory(balanceTo)
+    }
+    _ <- balanceHistoryRepository.insertNewBalance(balanceHistoryFrom)
+    _ <- balanceHistoryRepository.insertNewBalance(balanceHistoryTo)
+  } yield ()
+
+  def provideTransaction(transferRequest: TransferRequest): ZIO[DataSource with DataService, Throwable, Unit] = for {
+    _ <- updateAccounts(transferRequest)
+    _ <- commitTransaction(transferRequest)
+    _ <- updateBalanceHistory(transferRequest)
   } yield ()
 
 }
 
 object DataService {
 
-  def findUserByAccountNumber(accountNumber: String): ZIO[DataSource with DataService, Throwable, Option[UserAccount]] =
-    ZIO.service[DataService].flatMap(_.findUserByAccountNumber(accountNumber))
+  def updateAccounts(transferRequest: TransferRequest): ZIO[DataSource with DataService, Throwable, Unit] =
+    ZIO.service[DataService].flatMap(_.updateAccounts(transferRequest))
 
-  def provideTransaction(transferRequest: TransferRequestByAN): ZIO[DataSource with DataService, Throwable, Unit] =
+  def commitTransaction(transferRequest: TransferRequest): ZIO[DataSource with DataService, Throwable, Unit] =
+    ZIO.service[DataService].flatMap(_.commitTransaction(transferRequest))
+
+  def updateBalanceHistory(transferRequest: TransferRequest): ZIO[DataSource with DataService, Throwable, Unit] =
+    ZIO.service[DataService].flatMap(_.updateBalanceHistory(transferRequest))
+
+  def provideTransaction(transferRequest: TransferRequest): ZIO[DataSource with DataService, Throwable, Unit] =
     ZIO.service[DataService].flatMap(_.provideTransaction(transferRequest))
 
-  def insertTransaction(transaction: Transactions): ZIO[DataSource with DataService, Throwable, Unit] =
-    ZIO.service[DataService].flatMap(_.insertTransaction(transaction))
-
-  def insertBalanceHistory(newBalance: BalanceHistory): ZIO[DataSource with DataService, Throwable, Unit] =
-    ZIO.service[DataService].flatMap(_.insertBalanceHistory(newBalance))
-
-  def transactionComplete(transferRequest: TransferRequestByAN): ZIO[DataSource with DataService, Throwable, Unit] =
-    ZIO.service[DataService].flatMap(_.transactionComplete(transferRequest))
-
-  def findBalanceByAccountNumbers(
-    accountFrom: String,
-    accountTo: String
-  ): ZIO[DataSource with DataService, Throwable, (BalanceHistory, BalanceHistory)] =
-    ZIO.service[DataService].flatMap(_.findBalanceByAccountNumbers(accountFrom, accountTo))
-
-  val live: ZLayer[UserRepository with TransactionsRepository with BalanceHistoryRepository, Nothing, DataService] =
+  val live: ZLayer[UserRepository with AccountsRepository with TransactionsRepository with BalanceHistoryRepository, Nothing, DataService] =
     ZLayer.fromFunction(
-      (userRepo: UserRepository,
-       transactionsRepo: TransactionsRepository,
-       balanceHistoryRepository: BalanceHistoryRepository
-      ) => new DataServiceImpl(userRepo, transactionsRepo, balanceHistoryRepository)
+      (userRepo: UserRepository, accountsRepo: AccountsRepository,transactionsRepo: TransactionsRepository,balanceHistoryRepo: BalanceHistoryRepository) =>
+        new DataServiceImpl(userRepo, accountsRepo, transactionsRepo, balanceHistoryRepo)
     )
 }

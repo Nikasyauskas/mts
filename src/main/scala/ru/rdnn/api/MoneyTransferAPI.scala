@@ -2,10 +2,9 @@ package ru.rdnn.api
 
 import zio._
 import ru.rdnn.DataService
-import ru.rdnn.dto.{BalanceHistory, Transactions, TransferRequest, TransferRequestByAN}
+import ru.rdnn.dto.TransferRequest
 import zio.http.{Response, _}
 import zio.json._
-import java.time.ZonedDateTime
 
 import javax.sql.DataSource
 
@@ -17,9 +16,9 @@ object MoneyTransferAPI {
         for {
           body <- req.body.asString
           transferRequest <- ZIO
-            .fromEither(body.fromJson[TransferRequestByAN])
+            .fromEither(body.fromJson[TransferRequest])
             .mapError(err => new Exception(s"Invalid JSON: $err"))
-          _ <- DataService.transactionComplete(transferRequest)
+          _ <- DataService.provideTransaction(transferRequest)
         } yield Response.json(s"""Transfer completed successfully\n""")
       )
         .catchAll { error =>

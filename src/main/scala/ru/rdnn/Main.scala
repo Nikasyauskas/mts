@@ -4,7 +4,7 @@ import zio._
 import zio.config.typesafe.TypesafeConfigProvider
 import ru.rdnn.configuration.Configuration
 import ru.rdnn.api.MoneyTransferAPI
-import ru.rdnn.dto.{BalanceHistoryRepository, TransactionsRepository, UserRepository}
+import ru.rdnn.dto.{AccountsRepository, BalanceHistoryRepository, TransactionsRepository, UserRepository}
 import zio.http.Server
 
 object Main extends ZIOAppDefault {
@@ -22,9 +22,10 @@ object Main extends ZIOAppDefault {
       .provide(
         Server.default,
         db.quillDS,
-        UserRepository.live,
-        TransactionsRepository.live,
+        AccountsRepository.live,
         BalanceHistoryRepository.live,
+        TransactionsRepository.live,
+        UserRepository.live,
         DataService.live
       )
       .orDie
