@@ -7,6 +7,7 @@ Uses curses for terminal UI.
 import curses
 import re
 import sys
+import time
 from typing import Dict, List, Tuple, Optional
 from datetime import datetime
 
@@ -86,23 +87,36 @@ class DatabaseConnection:
                 user=self.username,
                 password=self.password
             )
+            self.conn.autocommit = True
             self.last_error = None
             return True
         except Exception as e:
             self.last_error = str(e)
             return False
     
-    def execute_query(self, query: str) -> List[Dict]:
-        """Execute query and return results as list of dictionaries."""
+    def execute_query(self, query: str) -> Tuple[List[Dict], Optional[str]]:
+        """Execute query and return (data, error). On connection failure, reconnect and retry once."""
         if not self.conn:
-            return []
-        
+            return [], "Not connected"
         try:
             with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute(query)
-                return cur.fetchall()
-        except Exception:
-            return []
+                return cur.fetchall(), None
+        except Exception as e:
+            err_msg = str(e)
+            try:
+                self.conn.close()
+            except Exception:
+                pass
+            self.conn = None
+            if self.connect():
+                try:
+                    with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
+                        cur.execute(query)
+                        return cur.fetchall(), None
+                except Exception as e2:
+                    return [], str(e2)
+            return [], err_msg
     
     def close(self):
         """Close database connection."""
@@ -115,12 +129,14 @@ class DatabaseViewer:
     
     def __init__(self, stdscr):
         self.stdscr = stdscr
-        self.current_tab = 0  # 0=users, 1=transactions, 2=balance_history
-        self.tabs = ['Users', 'Transactions', 'Balance History']
+        self.current_tab = 0  # 0=users, 1=accounts, 2=transactions, 3=balance_history
+        self.tabs = ['Users', 'Accounts', 'Transactions', 'Balance History']
         self.scroll_offset = 0
         self.db = None
         self.last_error = None
         self.needs_refresh = True  # Flag to track if screen needs redraw
+        self.last_data_refresh = time.monotonic()  # Time of last data fetch (for periodic refresh)
+        self.data_refresh_interval = 2  # Re-fetch data from DB every N seconds
         
         # Initialize curses
         curses.curs_set(0)  # Hide cursor
@@ -271,36 +287,44 @@ class DatabaseViewer:
             scroll_info = f"Rows {self.scroll_offset + 1}-{min(self.scroll_offset + max_rows, len(data))} of {len(data)}"
             self.safe_addstr(height - 1, 2, scroll_info[:width-4], curses.color_pair(3))
     
-    def get_users_data(self) -> Tuple[List[Dict], List[str], List[int]]:
+    def get_users_data(self) -> Tuple[List[Dict], List[str], List[int], Optional[str]]:
         """Get users table data."""
         query = """
-            SELECT id, account_number, balance, created_at, updated_at, is_active
+            SELECT id, user_name, email, phone, created_at, updated_at, is_active
             FROM bank.users
             ORDER BY created_at DESC
         """
-        data = self.db.execute_query(query) if self.db else []
-        
-        headers = ['id', 'account_number', 'balance', 'created_at', 'updated_at', 'is_active']
-        col_widths = [38, 15, 12, 20, 20, 8]
-        
-        return data, headers, col_widths
+        data, err = self.db.execute_query(query) if self.db else ([], "No DB")
+        headers = ['id', 'user_name', 'email', 'phone', 'created_at', 'updated_at', 'is_active']
+        col_widths = [38, 18, 28, 18, 20, 20, 8]
+        return data, headers, col_widths, err
     
-    def get_transactions_data(self) -> Tuple[List[Dict], List[str], List[int]]:
-        """Get transactions table data."""
+    def get_accounts_data(self) -> Tuple[List[Dict], List[str], List[int], Optional[str]]:
+        """Get accounts table data."""
         query = """
-            SELECT id, from_account_id, to_account_id, amount, created_at
+            SELECT id, user_id, account_number, currency_code, balance, created_at, updated_at, is_active
+            FROM bank.accounts
+            ORDER BY created_at DESC
+        """
+        data, err = self.db.execute_query(query) if self.db else ([], "No DB")
+        headers = ['id', 'user_id', 'account_number', 'currency_code', 'balance', 'created_at', 'updated_at', 'is_active']
+        col_widths = [38, 38, 14, 5, 12, 20, 20, 8]
+        return data, headers, col_widths, err
+
+    def get_transactions_data(self) -> Tuple[List[Dict], List[str], List[int], Optional[str]]:
+        """Get transactions table data. DDL: from_account, to_account reference account_number."""
+        query = """
+            SELECT id, from_account, to_account, amount, currency_code, exchange_rate, created_at
             FROM bank.transactions
             ORDER BY created_at DESC
             LIMIT 100
         """
-        data = self.db.execute_query(query) if self.db else []
-        
-        headers = ['id', 'from_account_id', 'to_account_id', 'amount', 'created_at']
-        col_widths = [38, 15, 15, 12, 20]
-        
-        return data, headers, col_widths
+        data, err = self.db.execute_query(query) if self.db else ([], "No DB")
+        headers = ['id', 'from_account', 'to_account', 'amount', 'currency_code', 'exchange_rate', 'created_at']
+        col_widths = [38, 14, 14, 12, 5, 12, 20]
+        return data, headers, col_widths, err
     
-    def get_balance_history_data(self) -> Tuple[List[Dict], List[str], List[int]]:
+    def get_balance_history_data(self) -> Tuple[List[Dict], List[str], List[int], Optional[str]]:
         """Get balance_history table data."""
         query = """
             SELECT id, account_number, old_balance, new_balance, amount, created_at
@@ -308,12 +332,10 @@ class DatabaseViewer:
             ORDER BY created_at DESC
             LIMIT 100
         """
-        data = self.db.execute_query(query) if self.db else []
-        
+        data, err = self.db.execute_query(query) if self.db else ([], "No DB")
         headers = ['id', 'account_number', 'old_balance', 'new_balance', 'amount', 'created_at']
         col_widths = [38, 15, 12, 12, 12, 20]
-        
-        return data, headers, col_widths
+        return data, headers, col_widths, err
     
     def draw_content(self):
         """Draw main content area."""
@@ -326,19 +348,26 @@ class DatabaseViewer:
             self.safe_addstr(start_y, 2, error_msg, curses.color_pair(4))
             return
         
-        # Get data based on current tab
+        # Get data based on current tab (always fresh from DB)
+        self.last_data_refresh = time.monotonic()
         try:
             if self.current_tab == 0:
-                data, headers, col_widths = self.get_users_data()
+                data, headers, col_widths, err = self.get_users_data()
             elif self.current_tab == 1:
-                data, headers, col_widths = self.get_transactions_data()
+                data, headers, col_widths, err = self.get_accounts_data()
+            elif self.current_tab == 2:
+                data, headers, col_widths, err = self.get_transactions_data()
             else:
-                data, headers, col_widths = self.get_balance_history_data()
+                data, headers, col_widths, err = self.get_balance_history_data()
         except Exception as e:
+            self.last_error = str(e)
             error_msg = f"Error loading data: {str(e)}"
             self.safe_addstr(start_y, 2, error_msg[:width-4], curses.color_pair(4))
             return
-        
+        if err:
+            self.last_error = err
+        else:
+            self.last_error = None
         # Adjust column widths if needed
         total_width = sum(col_widths) + len(col_widths) - 1
         if total_width > width - 2:
@@ -413,6 +442,10 @@ class DatabaseViewer:
                         if not self.handle_input(key):
                             break
                         self.needs_refresh = True
+                    else:
+                        # Timeout: periodic data refresh so tables stay up to date
+                        if time.monotonic() - self.last_data_refresh >= self.data_refresh_interval:
+                            self.needs_refresh = True
                     
                     # Redraw only if needed
                     if self.needs_refresh:
