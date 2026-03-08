@@ -63,7 +63,6 @@ sbt run
 ```
 приложени должно запуститься с логими, символизирующими, что сервер запущен.
 ```bash
-2026-01-17T23:11:34.82126+03:00  INFO msg:="test configuration localhost:8080"
 2026-01-17T23:11:36.317491+03:00 INFO msg:="Starting the server..."
 2026-01-17T23:11:36.460907+03:00 INFO msg:="Server started"
 ```
@@ -116,6 +115,7 @@ deactivate
 curl -X POST http://localhost:8080/transfer/account-number \
   -H "Content-Type: application/json" \
   -d '{
+    "userId": "e4224dc9-ac32-4682-a43c-d7cfc791af5b",
     "fromAccount": "8901201001",
     "toAccount": "8901201002",
     "amount": 100.00
@@ -125,10 +125,12 @@ curl -X POST http://localhost:8080/transfer/account-number \
 1. [x] переименовать DataSevies в DataServes
 2. [x] комбинирование всех *Repository в DataServes
 3. [x] рефакторинг по улучшению кода
-4. [ ] расширение базы данных
-5. [ ] транзакционность на уровне кода
-6. [ ] аутентификация
-7. [ ] error management
-8. [ ] ниписание unit тестов
-9. [ ] упаковать приложение в docker контейнер
-10. [ ] подключить миграции
+4. [x] расширение базы данных
+5. [ ] переписать под scala 3.3.7 TLS
+6. [ ] [warn] 1 deprecation (since 3.3.0); re-run with -deprecation for details
+7. [ ] error management (везде Throwable)
+8. [ ] транзакционность на уровне кода
+9. [ ] аутентификация
+10. [ ] unit tests
+11. [ ] упаковать приложение в docker контейнер
+12. [ ] подключить миграции

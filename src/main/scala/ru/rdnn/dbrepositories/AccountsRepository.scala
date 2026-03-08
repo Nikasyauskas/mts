@@ -1,4 +1,4 @@
-package ru.rdnn.dto
+package ru.rdnn.dbrepositories
 
 import ru.rdnn.db
 import zio.{ZIO, ZLayer}

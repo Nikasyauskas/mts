@@ -1,25 +1,25 @@
 package ru.rdnn
 
-import ru.rdnn.dto.{AccountsRepository, BalanceHistory, BalanceHistoryRepository, Transactions, TransactionsRepository, TransferRequest, User, UserRepository}
+import ru.rdnn.dbrepositories.{AccountsRepository, BalanceHistory, BalanceHistoryRepository, Transactions, TransactionsRepository, TransferRequest, User, UserRepository}
 import zio.{ZIO, ZLayer}
 
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.sql.DataSource
 
-trait DataService {
+trait DataBaseService {
   def updateAccounts(transferRequest: TransferRequest): ZIO[DataSource, Throwable, Unit]
   def commitTransaction(transferRequest: TransferRequest): ZIO[DataSource, Throwable, Unit]
   def updateBalanceHistory(transferRequest: TransferRequest): ZIO[DataSource, Throwable, Unit]
-  def provideTransaction(transferRequest: TransferRequest): ZIO[DataSource with DataService, Throwable, Unit]
+  def provideTransaction(transferRequest: TransferRequest): ZIO[DataSource with DataBaseService, Throwable, Unit]
 }
 
-class DataServiceImpl(
+class DataBaseServiceImpl(
   userRepository: UserRepository,
   accountsRepository: AccountsRepository,
   transactionsRepository: TransactionsRepository,
   balanceHistoryRepository: BalanceHistoryRepository
-) extends DataService {
+) extends DataBaseService {
 
   def updateAccounts(transferRequest: TransferRequest): ZIO[DataSource, Throwable, Unit] =
     for {
@@ -77,7 +77,7 @@ class DataServiceImpl(
     _ <- balanceHistoryRepository.insertNewBalance(balanceHistoryTo)
   } yield ()
 
-  def provideTransaction(transferRequest: TransferRequest): ZIO[DataSource with DataService, Throwable, Unit] = for {
+  def provideTransaction(transferRequest: TransferRequest): ZIO[DataSource with DataBaseService, Throwable, Unit] = for {
     _ <- updateAccounts(transferRequest)
     _ <- commitTransaction(transferRequest)
     _ <- updateBalanceHistory(transferRequest)
@@ -85,23 +85,23 @@ class DataServiceImpl(
 
 }
 
-object DataService {
+object DataBaseService {
 
-  def updateAccounts(transferRequest: TransferRequest): ZIO[DataSource with DataService, Throwable, Unit] =
-    ZIO.service[DataService].flatMap(_.updateAccounts(transferRequest))
+  def updateAccounts(transferRequest: TransferRequest): ZIO[DataSource with DataBaseService, Throwable, Unit] =
+    ZIO.service[DataBaseService].flatMap(_.updateAccounts(transferRequest))
 
-  def commitTransaction(transferRequest: TransferRequest): ZIO[DataSource with DataService, Throwable, Unit] =
-    ZIO.service[DataService].flatMap(_.commitTransaction(transferRequest))
+  def commitTransaction(transferRequest: TransferRequest): ZIO[DataSource with DataBaseService, Throwable, Unit] =
+    ZIO.service[DataBaseService].flatMap(_.commitTransaction(transferRequest))
 
-  def updateBalanceHistory(transferRequest: TransferRequest): ZIO[DataSource with DataService, Throwable, Unit] =
-    ZIO.service[DataService].flatMap(_.updateBalanceHistory(transferRequest))
+  def updateBalanceHistory(transferRequest: TransferRequest): ZIO[DataSource with DataBaseService, Throwable, Unit] =
+    ZIO.service[DataBaseService].flatMap(_.updateBalanceHistory(transferRequest))
 
-  def provideTransaction(transferRequest: TransferRequest): ZIO[DataSource with DataService, Throwable, Unit] =
-    ZIO.service[DataService].flatMap(_.provideTransaction(transferRequest))
+  def provideTransaction(transferRequest: TransferRequest): ZIO[DataSource with DataBaseService, Throwable, Unit] =
+    ZIO.service[DataBaseService].flatMap(_.provideTransaction(transferRequest))
 
-  val live: ZLayer[UserRepository with AccountsRepository with TransactionsRepository with BalanceHistoryRepository, Nothing, DataService] =
+  val live: ZLayer[UserRepository with AccountsRepository with TransactionsRepository with BalanceHistoryRepository, Nothing, DataBaseService] =
     ZLayer.fromFunction(
       (userRepo: UserRepository, accountsRepo: AccountsRepository,transactionsRepo: TransactionsRepository,balanceHistoryRepo: BalanceHistoryRepository) =>
-        new DataServiceImpl(userRepo, accountsRepo, transactionsRepo, balanceHistoryRepo)
+        new DataBaseServiceImpl(userRepo, accountsRepo, transactionsRepo, balanceHistoryRepo)
     )
 }

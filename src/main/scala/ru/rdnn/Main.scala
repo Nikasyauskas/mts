@@ -4,7 +4,7 @@ import zio._
 import zio.config.typesafe.TypesafeConfigProvider
 import ru.rdnn.configuration.Configuration
 import ru.rdnn.api.MoneyTransferAPI
-import ru.rdnn.dto.{AccountsRepository, BalanceHistoryRepository, TransactionsRepository, UserRepository}
+import ru.rdnn.dbrepositories.{AccountsRepository, BalanceHistoryRepository, TransactionsRepository, UserRepository}
 import zio.http.Server
 
 object Main extends ZIOAppDefault {
@@ -16,8 +16,7 @@ object Main extends ZIOAppDefault {
     ) ++ Logger.liveCustomLogger
 
   override def run: ZIO[Any, Exception, Unit] = for {
-    conf <- Configuration.config
-    _ <- ZIO.logInfo(s"test configuration ${conf.server.host}:${conf.server.port}")
+    _ <- Configuration.config
     _ <- Server.serve(MoneyTransferAPI.api)
       .provide(
         Server.default,
@@ -26,7 +25,7 @@ object Main extends ZIOAppDefault {
         BalanceHistoryRepository.live,
         TransactionsRepository.live,
         UserRepository.live,
-        DataService.live
+        DataBaseService.live
       )
       .orDie
   } yield ()

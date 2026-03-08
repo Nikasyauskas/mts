@@ -1,16 +1,16 @@
 package ru.rdnn.api
 
 import zio._
-import ru.rdnn.DataService
-import ru.rdnn.dto.TransferRequest
-import zio.http.{Response, _}
+import ru.rdnn.DataBaseService
+import ru.rdnn.dbrepositories.TransferRequest
+import zio.http._
 import zio.json._
 
 import javax.sql.DataSource
 
 object MoneyTransferAPI {
 
-  val api: Routes[DataSource with DataService, Nothing] = Routes(
+  val api: Routes[DataSource with DataBaseService, Nothing] = Routes(
     Method.POST / "transfer" / "account-number" -> handler { (req: Request) =>
       (
         for {
@@ -18,7 +18,7 @@ object MoneyTransferAPI {
           transferRequest <- ZIO
             .fromEither(body.fromJson[TransferRequest])
             .mapError(err => new Exception(s"Invalid JSON: $err"))
-          _ <- DataService.provideTransaction(transferRequest)
+          _ <- DataBaseService.provideTransaction(transferRequest)
         } yield Response.json(s"""Transfer completed successfully\n""")
       )
         .catchAll { error =>
