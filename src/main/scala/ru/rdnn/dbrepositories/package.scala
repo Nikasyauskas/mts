@@ -4,7 +4,7 @@ import zio.json.{DeriveJsonDecoder, JsonDecoder}
 import java.util.UUID
 import java.time.ZonedDateTime
 
-package object dto {
+package object dbrepositories {
 
   case class User(
     id: UUID,

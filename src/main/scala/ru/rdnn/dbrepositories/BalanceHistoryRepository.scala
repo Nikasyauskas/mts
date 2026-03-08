@@ -1,4 +1,4 @@
-package ru.rdnn.dto
+package ru.rdnn.dbrepositories
 
 import io.getquill.Ord
 import ru.rdnn.db
