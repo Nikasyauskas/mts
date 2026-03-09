@@ -126,7 +126,7 @@ curl -X POST http://localhost:8080/transfer/account-number \
 2. [x] комбинирование всех *Repository в DataServes
 3. [x] рефакторинг по улучшению кода
 4. [x] расширение базы данных
-5. [ ] переписать под scala 3.3.7 TLS
+5. [X] переписать под scala 3.3.7 TLS
 6. [ ] [warn] 1 deprecation (since 3.3.0); re-run with -deprecation for details
 7. [ ] error management (везде Throwable)
 8. [ ] транзакционность на уровне кода
@@ -134,3 +134,6 @@ curl -X POST http://localhost:8080/transfer/account-number \
 10. [ ] unit tests
 11. [ ] упаковать приложение в docker контейнер
 12. [ ] подключить миграции
+13. [ ] полноценный фронтенд
+
+я разрабатываю приложение для внутрибанковского перевода денег. Сгенерируй мне логотип для приложения используй минимум деталей. Используй денежную символику
