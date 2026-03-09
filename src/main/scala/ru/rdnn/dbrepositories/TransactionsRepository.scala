@@ -1,6 +1,8 @@
 package ru.rdnn.dbrepositories
 
 import ru.rdnn.db
+import ru.rdnn.db.Ctx
+import io.getquill.*
 import zio.{ZIO, ZLayer}
 
 import javax.sql.DataSource
@@ -10,16 +12,15 @@ trait TransactionsRepository {
 }
 
 class TransactionsRepositoryImpl(dataSource: DataSource) extends TransactionsRepository {
-  private val ctx = db.Ctx
-  import ctx._
+  import Ctx.*
 
-  private lazy val backTransactionsSchema = quote {
+  private inline def backTransactionsSchema = quote {
     querySchema[Transactions]("""bank.transactions""")
   }
 
   override def insertTransaction(transaction: Transactions): ZIO[DataSource, Throwable, Unit] =
-    ZIO.service[DataSource].flatMap { ds =>
-      ctx.run(
+    ZIO.service[DataSource].flatMap { _ =>
+      run(
         backTransactionsSchema
           .insertValue(lift(transaction))
       ).unit

@@ -2,6 +2,8 @@ package ru.rdnn.dbrepositories
 
 import io.getquill.Ord
 import ru.rdnn.db
+import ru.rdnn.db.Ctx
+import io.getquill.*
 import zio.{ZIO, ZLayer}
 
 import javax.sql.DataSource
@@ -12,35 +14,32 @@ trait BalanceHistoryRepository {
 }
 
 class BalanceHistoryRepositoryImpl(dataSource: DataSource) extends BalanceHistoryRepository {
-  private val ctx = db.Ctx
-  import ctx._
+  import Ctx.*
 
-  private lazy val bankBalanceHistorySchema = quote {
+  private inline def bankBalanceHistorySchema = quote {
     querySchema[BalanceHistory]("""bank.balance_history""")
   }
 
   def insertNewBalance(newBalance: BalanceHistory): ZIO[DataSource, Throwable, Unit] =
-    ZIO.service[DataSource].flatMap { ds =>
-      ctx
-        .run(
-          bankBalanceHistorySchema
-            .insertValue(lift(newBalance))
-        )
-        .unit
+    ZIO.service[DataSource].flatMap { _ =>
+      run(
+        bankBalanceHistorySchema
+          .insertValue(lift(newBalance))
+      ).unit
     }
 
   def findBalanceByAccountNumbers(transactionRequest: TransferRequest): ZIO[DataSource, Throwable, (BalanceHistory, BalanceHistory)] =
-    ZIO.service[DataSource].flatMap { ds =>
+    ZIO.service[DataSource].flatMap { _ =>
       for {
-        fromBalance <- ctx
-          .run(
+        fromBalance <-
+          run(
             bankBalanceHistorySchema
               .filter(_.account_number == lift(transactionRequest.fromAccount))
               .sortBy(_.created_at)(Ord.desc)
               .take(1) // TODO возможно все испортит, т.к. может быть take на NULL
           )
-        toBalance <- ctx
-          .run(
+        toBalance <-
+          run(
             bankBalanceHistorySchema
               .filter(_.account_number == lift(transactionRequest.toAccount))
               .sortBy(_.created_at)(Ord.desc)

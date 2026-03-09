@@ -1,5 +1,7 @@
 name := "MTS"
-scalaVersion := "2.13.16"
+scalaVersion := "3.3.7"
+
+ThisBuild / evictionErrorLevel := sbt.util.Level.Warn
 
 lazy val root = (project in file("."))
   .settings(

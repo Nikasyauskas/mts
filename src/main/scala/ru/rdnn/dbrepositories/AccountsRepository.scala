@@ -1,6 +1,8 @@
 package ru.rdnn.dbrepositories
 
 import ru.rdnn.db
+import ru.rdnn.db.Ctx
+import io.getquill.*
 import zio.{ZIO, ZLayer}
 
 import javax.sql.DataSource
@@ -12,42 +14,35 @@ trait AccountsRepository {
 }
 
 class AccountsRepositoryImpl(dataSource: DataSource) extends AccountsRepository {
-  private val ctx = db.Ctx
-  import ctx._
+  import Ctx.*
 
-  private lazy val bankAccountsSchema = quote {
+  private inline def bankAccountsSchema = quote {
     querySchema[Accounts]("""bank.accounts""")
   }
 
   def findAccountByAccountNumber(accountNumber: String): ZIO[DataSource, Throwable, Accounts] =
     ZIO.service[DataSource].flatMap { _ =>
-      ctx
-        .run(
-          quote(bankAccountsSchema.filter(_.account_number == lift(accountNumber)))
-        )
-        .map(_.head)
+      run {
+        bankAccountsSchema.filter(_.account_number == lift(accountNumber))
+      }.map(_.head)
     }
 
   def withdrawalAccount(account: Accounts, amount: Float): ZIO[DataSource, Throwable, Unit] =
     ZIO.service[DataSource].flatMap { _ =>
-      ctx.run(
-        quote(
-          bankAccountsSchema
-            .filter(_.id == lift(account.id))
-            .update(_.balance -> lift(account.balance - amount))
-        )
-      ).unit
+      run {
+        bankAccountsSchema
+          .filter(_.id == lift(account.id))
+          .update(_.balance -> lift(account.balance - amount))
+      }.unit
     }
 
   def creditAccount(account: Accounts, amount: Float): ZIO[DataSource, Throwable, Unit] =
     ZIO.service[DataSource].flatMap { _ =>
-      ctx.run(
-        quote(
-          bankAccountsSchema
-            .filter(_.id == lift(account.id))
-            .update(_.balance -> lift(account.balance + amount))
-        )
-      ).unit
+      run {
+        bankAccountsSchema
+          .filter(_.id == lift(account.id))
+          .update(_.balance -> lift(account.balance + amount))
+      }.unit
     }
 }
 
