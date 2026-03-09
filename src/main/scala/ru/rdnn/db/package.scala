@@ -18,10 +18,10 @@ package object db {
 
   object Ctx extends PostgresZioJdbcContext(NamingStrategy(Escape, Literal))
 
-  def hikariDS: HikariDataSource = new JdbcContextConfig(LoadConfig("database")).dataSource
+  private def hikariDS: HikariDataSource = new JdbcContextConfig(LoadConfig("database")).dataSource
 
-  val zioDS: ZLayer[Any, Throwable, DataSource] = 
-    ZioJdbc.DataSourceLayer.fromDataSource(hikariDS)
+  val zioDS: ZLayer[Any, Throwable, DataSource] =
+    ZLayer.succeed(hikariDS)
     
   val quillDS: ZLayer[Any, Throwable, DataSource] = 
     Quill.DataSource.fromPrefix("database")

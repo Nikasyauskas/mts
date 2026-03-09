@@ -127,7 +127,7 @@ curl -X POST http://localhost:8080/transfer/account-number \
 3. [x] рефакторинг по улучшению кода
 4. [x] расширение базы данных
 5. [X] переписать под scala 3.3.7 TLS
-6. [ ] [warn] 1 deprecation (since 3.3.0); re-run with -deprecation for details
+6. [x] [warn] 1 deprecation (since 3.3.0); re-run with -deprecation for details
 7. [ ] error management (везде Throwable)
 8. [ ] транзакционность на уровне кода
 9. [ ] аутентификация

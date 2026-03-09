@@ -3,6 +3,10 @@ scalaVersion := "3.3.7"
 
 ThisBuild / evictionErrorLevel := sbt.util.Level.Warn
 
+scalacOptions := Seq(
+  "-deprecation"
+)
+
 lazy val root = (project in file("."))
   .settings(
     name := "mts",
