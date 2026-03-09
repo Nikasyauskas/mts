@@ -4,6 +4,8 @@ import ru.rdnn.db
 import ru.rdnn.db.Ctx
 import io.getquill.*
 import zio.{ZIO, ZLayer}
+import ru.rdnn.AppError
+import ru.rdnn.AppError.DbError
 
 import java.util.UUID
 import javax.sql.DataSource
@@ -11,7 +13,7 @@ import javax.sql.DataSource
 
 
 trait UserRepository {
-  def findUserById(id: UUID): ZIO[DataSource, Throwable, Option[User]]
+  def findUserById(id: UUID): ZIO[DataSource, AppError, Option[User]]
 }
 
 class UserRepositoryImpl(dataSource: DataSource) extends UserRepository {
@@ -21,13 +23,16 @@ class UserRepositoryImpl(dataSource: DataSource) extends UserRepository {
     querySchema[User]("""bank.users""")
   }
 
-  def findUserById(id: java.util.UUID): ZIO[DataSource, Throwable, Option[User]] =
-    ZIO.service[DataSource].flatMap { _ =>
-      run(
-        bankUsersSchema
-          .filter(_.id == lift(id))
-      ).map(_.headOption)
-    }
+  def findUserById(id: java.util.UUID): ZIO[DataSource, AppError, Option[User]] =
+    ZIO
+      .service[DataSource]
+      .flatMap { _ =>
+        run(
+          bankUsersSchema
+            .filter(_.id == lift(id))
+        ).map(_.headOption)
+      }
+      .mapError(DbError(_))
 
 }
 

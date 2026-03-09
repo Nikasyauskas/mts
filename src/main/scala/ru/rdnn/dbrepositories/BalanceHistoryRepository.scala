@@ -5,12 +5,14 @@ import ru.rdnn.db
 import ru.rdnn.db.Ctx
 import io.getquill.*
 import zio.{ZIO, ZLayer}
+import ru.rdnn.AppError
+import ru.rdnn.AppError.{BalanceHistoryNotFound, DbError}
 
 import javax.sql.DataSource
 
 trait BalanceHistoryRepository {
-  def insertNewBalance(newBalance: BalanceHistory): ZIO[DataSource, Throwable, Unit]
-  def findBalanceByAccountNumbers(transactionRequest: TransferRequest): ZIO[DataSource, Throwable, (BalanceHistory, BalanceHistory)]
+  def insertNewBalance(newBalance: BalanceHistory): ZIO[DataSource, AppError, Unit]
+  def findBalanceByAccountNumbers(transactionRequest: TransferRequest): ZIO[DataSource, AppError, (BalanceHistory, BalanceHistory)]
 }
 
 class BalanceHistoryRepositoryImpl(dataSource: DataSource) extends BalanceHistoryRepository {
@@ -20,33 +22,47 @@ class BalanceHistoryRepositoryImpl(dataSource: DataSource) extends BalanceHistor
     querySchema[BalanceHistory]("""bank.balance_history""")
   }
 
-  def insertNewBalance(newBalance: BalanceHistory): ZIO[DataSource, Throwable, Unit] =
-    ZIO.service[DataSource].flatMap { _ =>
-      run(
-        bankBalanceHistorySchema
-          .insertValue(lift(newBalance))
-      ).unit
-    }
+  def insertNewBalance(newBalance: BalanceHistory): ZIO[DataSource, AppError, Unit] =
+    ZIO
+      .service[DataSource]
+      .flatMap { _ =>
+        run(
+          bankBalanceHistorySchema
+            .insertValue(lift(newBalance))
+        ).unit
+      }
+      .mapError(DbError(_))
 
-  def findBalanceByAccountNumbers(transactionRequest: TransferRequest): ZIO[DataSource, Throwable, (BalanceHistory, BalanceHistory)] =
-    ZIO.service[DataSource].flatMap { _ =>
-      for {
-        fromBalance <-
-          run(
-            bankBalanceHistorySchema
-              .filter(_.account_number == lift(transactionRequest.fromAccount))
-              .sortBy(_.created_at)(Ord.desc)
-              .take(1) // TODO возможно все испортит, т.к. может быть take на NULL
-          )
-        toBalance <-
-          run(
-            bankBalanceHistorySchema
-              .filter(_.account_number == lift(transactionRequest.toAccount))
-              .sortBy(_.created_at)(Ord.desc)
-              .take(1) // TODO возможно все испортит, т.к. может быть take на NULL
-          )
-      } yield (fromBalance.head, toBalance.head)
-    }
+  def findBalanceByAccountNumbers(transactionRequest: TransferRequest): ZIO[DataSource, AppError, (BalanceHistory, BalanceHistory)] =
+    ZIO
+      .service[DataSource]
+      .flatMap { _ =>
+        for {
+          fromBalance <-
+            run(
+              bankBalanceHistorySchema
+                .filter(_.account_number == lift(transactionRequest.fromAccount))
+                .sortBy(_.created_at)(Ord.desc)
+                .take(1)
+            )
+          toBalance <-
+            run(
+              bankBalanceHistorySchema
+                .filter(_.account_number == lift(transactionRequest.toAccount))
+                .sortBy(_.created_at)(Ord.desc)
+                .take(1)
+            )
+        } yield (fromBalance.headOption, toBalance.headOption)
+      }
+      .mapError(DbError(_))
+      .flatMap {
+        case (Some(from), Some(to)) =>
+          ZIO.succeed((from, to))
+        case (None, _) =>
+          ZIO.fail(BalanceHistoryNotFound(transactionRequest.fromAccount): AppError)
+        case (_, None) =>
+          ZIO.fail(BalanceHistoryNotFound(transactionRequest.toAccount): AppError)
+      }
 
 }
 
