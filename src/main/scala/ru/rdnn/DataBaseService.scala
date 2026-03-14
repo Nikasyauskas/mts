@@ -1,5 +1,6 @@
 package ru.rdnn
 
+import ru.rdnn.db.Ctx
 import ru.rdnn.dbrepositories.{AccountsRepository, BalanceHistory, BalanceHistoryRepository, Transactions, TransactionsRepository, TransferRequest, User, UserRepository}
 import zio.{ZIO, ZLayer}
 import ru.rdnn.AppError
@@ -33,7 +34,6 @@ class DataBaseServiceImpl(
       _ <- ZIO
         .fail(NonPositiveAmount(transferRequest.amount))
         .when(transferRequest.amount <= 0)
-      // TODO: Execute the transaction atomically. check it in otus.ru project or John'De'Goes
       _ <- accountsRepository.withdrawalAccount(accountFrom, transferRequest.amount)
       _ <- accountsRepository.creditAccount(accountTo, transferRequest.amount)
     } yield ()
@@ -83,11 +83,14 @@ class DataBaseServiceImpl(
     _ <- balanceHistoryRepository.insertNewBalance(balanceHistoryTo)
   } yield ()
 
-  def provideTransaction(transferRequest: TransferRequest): ZIO[DataSource with DataBaseService, AppError, Unit] = for {
-    _ <- updateAccounts(transferRequest)
-    _ <- commitTransaction(transferRequest)
-    _ <- updateBalanceHistory(transferRequest)
-  } yield ()
+  def provideTransaction(transferRequest: TransferRequest): ZIO[DataSource with DataBaseService, AppError, Unit] =
+    ZIO.serviceWithZIO[DataBaseService] { self =>
+      Ctx.transaction(
+        self.updateAccounts(transferRequest) *>
+          self.commitTransaction(transferRequest) *>
+          self.updateBalanceHistory(transferRequest)
+      ).mapError { case e: AppError => e; case t => DbError(t) }
+    }
 
 }
 
