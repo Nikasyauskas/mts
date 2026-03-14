@@ -129,7 +129,7 @@ curl -X POST http://localhost:8080/transfer/account-number \
 5. [X] переписать под scala 3.3.7 TLS
 6. [x] [warn] 1 deprecation (since 3.3.0); re-run with -deprecation for details
 7. [x] error management (везде Throwable)
-8. [ ] [warn] found version conflict(s) in library dependencies; some are suspected to be binary incompatible:
+8. [x] [warn] found version conflict(s) in library dependencies; some are suspected to be binary incompatible:
 9. [ ] транзакционность на уровне кода
 10. [ ] аутентификация
 11. [ ] unit tests
