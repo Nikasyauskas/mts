@@ -28,7 +28,7 @@ object Dependencies {
   )
 
   lazy val zioHttp = "dev.zio" %% "zio-http" % ZIOHttpVersion
-  lazy val zioQuill = "io.getquill" %% "quill-jdbc-zio" % zioQuillVersion
+  lazy val zioQuill = "io.getquill" %% "quill-jdbc-zio" % zioQuillVersion exclude("dev.zio", "zio-json_3")
   lazy val zioLogging = "dev.zio" %% "zio-logging" % zioLoggingVersion
   lazy val zioJson = "dev.zio" %% "zio-json" % zioJsonVersion
 
