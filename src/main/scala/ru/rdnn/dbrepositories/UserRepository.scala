@@ -19,7 +19,7 @@ trait UserRepository {
 class UserRepositoryImpl(dataSource: DataSource) extends UserRepository {
   import Ctx.*
 
-  private inline def bankUsersSchema = quote {
+  private inline def bankUsersSchema: Quoted[EntityQuery[User]] = quote {
     querySchema[User]("""bank.users""")
   }
 

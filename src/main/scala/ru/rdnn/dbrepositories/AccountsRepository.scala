@@ -18,7 +18,7 @@ trait AccountsRepository {
 class AccountsRepositoryImpl(dataSource: DataSource) extends AccountsRepository {
   import Ctx.*
 
-  private inline def bankAccountsSchema = quote {
+  private inline def bankAccountsSchema: Quoted[EntityQuery[Accounts]] = quote {
     querySchema[Accounts]("""bank.accounts""")
   }
 
@@ -34,7 +34,7 @@ class AccountsRepositoryImpl(dataSource: DataSource) extends AccountsRepository 
       .flatMap { accounts =>
         ZIO
           .fromOption(accounts.headOption)
-          .orElseFail(AccountNotFound(accountNumber): AppError)
+          .orElseFail(AccountNotFound(accountNumber))
       }
 
   def withdrawalAccount(account: Accounts, amount: Float): ZIO[DataSource, AppError, Unit] =

@@ -19,7 +19,7 @@ object MoneyTransferAPI {
           body <- req.body.asString
           transferRequest <- ZIO
             .fromEither(body.fromJson[TransferRequest])
-            .mapError(err => JsonDecodingError(err): AppError)
+            .mapError(err => JsonDecodingError(err))
           _ <- DataBaseService.provideTransaction(transferRequest)
         } yield Response.json(s"""Transfer completed successfully\n""")
       )

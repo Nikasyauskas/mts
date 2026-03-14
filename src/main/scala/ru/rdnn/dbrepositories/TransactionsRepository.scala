@@ -14,7 +14,7 @@ trait TransactionsRepository {
 class TransactionsRepositoryImpl(dataSource: DataSource) extends TransactionsRepository {
   import Ctx.*
 
-  private inline def backTransactionsSchema = quote {
+  private inline def backTransactionsSchema: Quoted[EntityQuery[Transactions]] = quote {
     querySchema[Transactions]("""bank.transactions""")
   }
 

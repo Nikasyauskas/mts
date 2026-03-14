@@ -18,7 +18,7 @@ trait BalanceHistoryRepository {
 class BalanceHistoryRepositoryImpl(dataSource: DataSource) extends BalanceHistoryRepository {
   import Ctx.*
 
-  private inline def bankBalanceHistorySchema = quote {
+  private inline def bankBalanceHistorySchema: Quoted[EntityQuery[BalanceHistory]] = quote {
     querySchema[BalanceHistory]("""bank.balance_history""")
   }
 
@@ -38,15 +38,13 @@ class BalanceHistoryRepositoryImpl(dataSource: DataSource) extends BalanceHistor
       .service[DataSource]
       .flatMap { _ =>
         for {
-          fromBalance <-
-            run(
+          fromBalance <- run(
               bankBalanceHistorySchema
                 .filter(_.account_number == lift(transactionRequest.fromAccount))
                 .sortBy(_.created_at)(Ord.desc)
                 .take(1)
             )
-          toBalance <-
-            run(
+          toBalance <- run(
               bankBalanceHistorySchema
                 .filter(_.account_number == lift(transactionRequest.toAccount))
                 .sortBy(_.created_at)(Ord.desc)
@@ -59,9 +57,9 @@ class BalanceHistoryRepositoryImpl(dataSource: DataSource) extends BalanceHistor
         case (Some(from), Some(to)) =>
           ZIO.succeed((from, to))
         case (None, _) =>
-          ZIO.fail(BalanceHistoryNotFound(transactionRequest.fromAccount): AppError)
+          ZIO.fail(BalanceHistoryNotFound(transactionRequest.fromAccount))
         case (_, None) =>
-          ZIO.fail(BalanceHistoryNotFound(transactionRequest.toAccount): AppError)
+          ZIO.fail(BalanceHistoryNotFound(transactionRequest.toAccount))
       }
 
 }

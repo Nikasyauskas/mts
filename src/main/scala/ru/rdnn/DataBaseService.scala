@@ -28,12 +28,12 @@ class DataBaseServiceImpl(
       accountFrom <- accountsRepository.findAccountByAccountNumber(transferRequest.fromAccount)
       accountTo <- accountsRepository.findAccountByAccountNumber(transferRequest.toAccount)
       _ <- ZIO
-        .fail(InsufficientBalance(transferRequest.amount, accountFrom.balance): AppError)
+        .fail(InsufficientBalance(transferRequest.amount, accountFrom.balance))
         .when(accountFrom.balance < transferRequest.amount)
       _ <- ZIO
-        .fail(NonPositiveAmount(transferRequest.amount): AppError)
+        .fail(NonPositiveAmount(transferRequest.amount))
         .when(transferRequest.amount <= 0)
-      // // TODO: Execute the transaction atomically. check it in otus.ru project or John'De'Goes
+      // TODO: Execute the transaction atomically. check it in otus.ru project or John'De'Goes
       _ <- accountsRepository.withdrawalAccount(accountFrom, transferRequest.amount)
       _ <- accountsRepository.creditAccount(accountTo, transferRequest.amount)
     } yield ()
