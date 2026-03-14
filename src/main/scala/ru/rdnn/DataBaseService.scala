@@ -84,13 +84,16 @@ class DataBaseServiceImpl(
   } yield ()
 
   def provideTransaction(transferRequest: TransferRequest): ZIO[DataSource with DataBaseService, AppError, Unit] =
-    ZIO.serviceWithZIO[DataBaseService] { self =>
-      Ctx.transaction(
+    for {
+      self    <- ZIO.service[DataBaseService]
+      tx = Ctx.transaction(
         self.updateAccounts(transferRequest) *>
           self.commitTransaction(transferRequest) *>
           self.updateBalanceHistory(transferRequest)
       ).mapError { case e: AppError => e; case t => DbError(t) }
-    }
+      fiber   <- tx.interruptible.fork
+      _       <- fiber.join
+    } yield ()
 
 }
 
