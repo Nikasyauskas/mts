@@ -20,7 +20,12 @@ lazy val root = (project in file("."))
           Dependencies.postgres,
           Dependencies.zioLogging,
           Dependencies.zioJson,
-          Dependencies.logback
-      ),
-    dependencyOverrides += "dev.zio" %% "zio-logging" % "2.1.15"
+          Dependencies.logback,
+          Dependencies.ScalaTest % Test
+        ) ++ Dependencies.testContainers,
+    dependencyOverrides += "dev.zio" %% "zio-logging" % "2.1.15",
+    Test / testFrameworks := Seq(
+      new TestFramework("zio.test.sbt.ZTestFramework"),
+      TestFrameworks.ScalaTest
+    )
   )
