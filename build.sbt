@@ -16,7 +16,6 @@ lazy val root = (project in file("."))
         Seq(
           Dependencies.zioHttp,
           Dependencies.zioQuill,
-          Dependencies.liquibase,
           Dependencies.postgres,
           Dependencies.zioLogging,
           Dependencies.zioJson,
