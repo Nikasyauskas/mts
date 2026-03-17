@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.4.xsd">
+
+  <changeSet id="001-000-bank-schema-and-pgcrypto" author="rdnn">
+    <sql>CREATE SCHEMA IF NOT EXISTS bank;</sql>
+    <sql>CREATE EXTENSION IF NOT EXISTS pgcrypto;</sql>
+  </changeSet>
+
+  <changeSet id="001-010-users" author="rdnn">
+    <createTable schemaName="bank" tableName="users">
+      <column name="id" type="UUID">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+      <column name="user_name" type="VARCHAR(255)"/>
+      <column name="email" type="VARCHAR(255)">
+        <constraints nullable="false" unique="true"/>
+      </column>
+      <column name="phone" type="VARCHAR(20)"/>
+      <column name="created_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP"/>
+      <column name="updated_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP"/>
+      <column name="is_active" type="BOOLEAN" defaultValueBoolean="true"/>
+    </createTable>
+
+    <createIndex schemaName="bank" tableName="users" indexName="idx_users_user_name">
+      <column name="user_name"/>
+    </createIndex>
+  </changeSet>
+
+  <changeSet id="001-020-accounts" author="mts">
+    <createTable schemaName="bank" tableName="accounts">
+      <column name="id" type="UUID">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+      <column name="user_id" type="UUID">
+        <constraints nullable="false"/>
+      </column>
+      <column name="account_number" type="VARCHAR(34)">
+        <constraints nullable="false" unique="true"/>
+      </column>
+      <column name="currency_code" type="VARCHAR(3)" defaultValue="RUB">
+        <constraints nullable="false"/>
+      </column>
+      <column name="balance" type="DECIMAL(15,2)" defaultValueNumeric="0.00">
+        <constraints nullable="false"/>
+      </column>
+      <column name="created_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP"/>
+      <column name="updated_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP"/>
+      <column name="is_active" type="BOOLEAN" defaultValueBoolean="true"/>
+    </createTable>
+
+    <addForeignKeyConstraint
+      baseTableSchemaName="bank"
+      baseTableName="accounts"
+      baseColumnNames="user_id"
+      referencedTableSchemaName="bank"
+      referencedTableName="users"
+      referencedColumnNames="id"
+      constraintName="fk_accounts_user_id_users_id"
+      onDelete="CASCADE"/>
+  </changeSet>
+
+  <changeSet id="001-030-transactions" author="rdnn">
+    <createTable schemaName="bank" tableName="transactions">
+      <column name="id" type="UUID">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+      <column name="from_account" type="VARCHAR(34)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="to_account" type="VARCHAR(34)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="amount" type="DECIMAL(15,2)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="currency_code" type="VARCHAR(3)" defaultValue="RUB">
+        <constraints nullable="false"/>
+      </column>
+      <column name="exchange_rate" type="DECIMAL(15,2)" defaultValueNumeric="1.0"/>
+      <column name="created_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP"/>
+    </createTable>
+
+    <sql>ALTER TABLE bank.transactions ADD CONSTRAINT chk_transactions_amount_positive CHECK (amount &gt; 0);</sql>
+
+    <addForeignKeyConstraint
+      baseTableSchemaName="bank"
+      baseTableName="transactions"
+      baseColumnNames="from_account"
+      referencedTableSchemaName="bank"
+      referencedTableName="accounts"
+      referencedColumnNames="account_number"
+      constraintName="fk_transactions_from_account_accounts_account_number"/>
+
+    <addForeignKeyConstraint
+      baseTableSchemaName="bank"
+      baseTableName="transactions"
+      baseColumnNames="to_account"
+      referencedTableSchemaName="bank"
+      referencedTableName="accounts"
+      referencedColumnNames="account_number"
+      constraintName="fk_transactions_to_account_accounts_account_number"/>
+
+    <createIndex schemaName="bank" tableName="transactions" indexName="idx_transactions_from_account">
+      <column name="from_account"/>
+    </createIndex>
+
+    <createIndex schemaName="bank" tableName="transactions" indexName="idx_transactions_to_account">
+      <column name="to_account"/>
+    </createIndex>
+  </changeSet>
+
+  <changeSet id="001-040-balance-history" author="mts">
+    <createTable schemaName="bank" tableName="balance_history">
+      <column name="id" type="UUID">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+      <column name="account_number" type="VARCHAR(34)"/>
+      <column name="old_balance" type="DECIMAL(15,2)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="new_balance" type="DECIMAL(15,2)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="amount" type="DECIMAL(15,2)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="created_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP"/>
+    </createTable>
+
+    <addForeignKeyConstraint
+      baseTableSchemaName="bank"
+      baseTableName="balance_history"
+      baseColumnNames="account_number"
+      referencedTableSchemaName="bank"
+      referencedTableName="accounts"
+      referencedColumnNames="account_number"
+      constraintName="fk_balance_history_account_number_accounts_account_number"/>
+  </changeSet>
+
+  <changeSet id="001-100-seed-data" author="mts" context="dev,test">
+    <insert schemaName="bank" tableName="users">
+      <column name="id" value="e4224dc9-ac32-4682-a43c-d7cfc791af5b"/>
+      <column name="user_name" value="James Bond"/>
+      <column name="email" value="007@bank.local"/>
+      <column name="phone" value="+7(900)007-45-01"/>
+      <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+      <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+      <column name="is_active" valueBoolean="true"/>
+    </insert>
+
+    <insert schemaName="bank" tableName="users">
+      <column name="id" value="3c4987b6-c696-4768-97e2-f79622a49e6b"/>
+      <column name="user_name" value="Judge Dredd"/>
+      <column name="email" value="ImTheLaw@bank.local"/>
+      <column name="phone" value="+7(903)123-45-02"/>
+      <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+      <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+      <column name="is_active" valueBoolean="true"/>
+    </insert>
+
+    <insert schemaName="bank" tableName="users">
+      <column name="id" value="bf7e2e36-350b-4ea7-ae7d-ff4ce38d3476"/>
+      <column name="user_name" value="Ernest Hemingway"/>
+      <column name="email" value="AFarewellToArms@bank.local"/>
+      <column name="phone" value="+7(900)123-45-03"/>
+      <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+      <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+      <column name="is_active" valueBoolean="true"/>
+    </insert>
+
+    <sql>
+      INSERT INTO bank.accounts (id, user_id, account_number, currency_code, balance, created_at, updated_at, is_active) VALUES
+      (gen_random_uuid(), 'e4224dc9-ac32-4682-a43c-d7cfc791af5b', '8901201001', 'RUB', 1000.00, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, true),
+      (gen_random_uuid(), '3c4987b6-c696-4768-97e2-f79622a49e6b', '8901201002', 'RUB', 1000.00, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, true),
+      (gen_random_uuid(), 'bf7e2e36-350b-4ea7-ae7d-ff4ce38d3476', '8901201003', 'RUB', 1000.00, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, true);
+    </sql>
+
+    <sql>
+      INSERT INTO bank.balance_history (id, account_number, old_balance, new_balance, amount, created_at) VALUES
+      (gen_random_uuid(), '8901201001', 0.00, 1000.00, 1000.00, CURRENT_TIMESTAMP),
+      (gen_random_uuid(), '8901201002', 0.00, 1000.00, 1000.00, CURRENT_TIMESTAMP),
+      (gen_random_uuid(), '8901201003', 0.00, 1000.00, 1000.00, CURRENT_TIMESTAMP);
+    </sql>
+  </changeSet>
+
+</databaseChangeLog>
