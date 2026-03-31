@@ -23,6 +23,8 @@ lazy val root = (project in file("."))
           Dependencies.ScalaTest % Test
         ) ++ Dependencies.testContainers,
     dependencyOverrides += "dev.zio" %% "zio-logging" % "2.1.15",
+    assembly / logLevel := Level.Debug,
+    assembly / assemblyJarName := s"$name-assembly.jar",
     Test / testFrameworks := Seq(
       new TestFramework("zio.test.sbt.ZTestFramework"),
       TestFrameworks.ScalaTest
