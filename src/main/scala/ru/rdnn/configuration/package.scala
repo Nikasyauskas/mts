@@ -18,9 +18,15 @@ package object configuration {
     driverClassName: String
   )
 
+  case class JwtConfig(
+    secret: String,
+    ttlSeconds: Long
+  )
+
   case class Conf(
     server: ServerConfig,
-    database: DatabaseConfig
+    database: DatabaseConfig,
+    jwt: JwtConfig
   )
 
   private val applicationConfig: Config[Conf] = deriveConfig[Conf]
