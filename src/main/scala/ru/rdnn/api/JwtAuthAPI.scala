@@ -21,7 +21,7 @@ object JwtAuthAPI {
   final case class LoginRequest(email: String, password: String)
   final case class RegisterRequest(email: String, password: String, userName: String, phone: String = "")
   final case class RegisterResponse(userId: String, accountNumber: String)
-  final case class AuthResponse(token: String, tokenType: String = "Bearer")
+  final case class AuthResponse(token: String, tokenType: String = "Bearer", accountNumbers: List[String] = Nil)
 
   private implicit val claimsDecoder: JsonDecoder[JwtClaims] = DeriveJsonDecoder.gen[JwtClaims]
   private implicit val claimsEncoder: JsonEncoder[JwtClaims] = DeriveJsonEncoder.gen[JwtClaims]
@@ -133,11 +133,16 @@ object JwtAuthAPI {
           user     <- ZIO.fromOption(userOpt).orElseFail(JsonDecodingError("Invalid email or password"))
           ok       <- PasswordHash.verify(login.password, user.password_hash).mapError(_ => JsonDecodingError("Invalid email or password"))
           _        <- ZIO.fail(JsonDecodingError("Invalid email or password")).when(!ok)
-          conf     <- Configuration.config.mapError(e => DbError(new RuntimeException(e.toString)))
+          conf         <- Configuration.config.mapError(e => DbError(new RuntimeException(e.toString)))
+          accountsRepo <- ZIO.service[AccountsRepository]
+          accountNums <- accountsRepo.listAccountNumbersByUserId(user.id).mapError {
+            case d: DbError => d
+            case e          => DbError(e)
+          }
           token <- JwtAuthAPI
             .generateToken(user.id.toString, conf.jwt.secret, conf.jwt.ttlSeconds)
             .mapError(msg => JsonDecodingError(msg))
-        } yield Response.json(AuthResponse(token = token).toJson)
+        } yield Response.json(AuthResponse(token = token, accountNumbers = accountNums).toJson)
       ).catchAll {
         case JsonDecodingError(d) =>
           ZIO.succeed(

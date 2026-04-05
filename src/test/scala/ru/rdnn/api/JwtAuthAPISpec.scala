@@ -44,6 +44,8 @@ object JwtAuthAPISpec extends ZIOSpecDefault {
   private val mockAccounts: AccountsRepository = new AccountsRepository {
     override def findAccountByAccountNumber(accountNumber: String) =
       ZIO.fail(AccountNotFound(accountNumber))
+    override def listAccountNumbersByUserId(userId: UUID): ZIO[DataSource, AppError, List[String]] =
+      ZIO.succeed(if (userId == loginUser.id) List("8901201001") else Nil)
     override def insertAccount(account: Accounts): ZIO[DataSource, AppError, Unit] = ZIO.unit
     override def withdrawalAccount(account: Accounts, amount: Float): ZIO[DataSource, AppError, Unit] = ZIO.unit
     override def creditAccount(account: Accounts, amount: Float): ZIO[DataSource, AppError, Unit] = ZIO.unit
@@ -75,7 +77,11 @@ object JwtAuthAPISpec extends ZIOSpecDefault {
         resp <- JwtAuthAPI.authRoutes.runZIO(req).provide(Scope.default ++ authLayers)
         text <- resp.body.asString
         parsed <- ZIO.fromEither(text.fromJson[JwtAuthAPI.AuthResponse])
-      } yield assertTrue(resp.status == Status.Ok, parsed.token.nonEmpty)
+      } yield assertTrue(
+        resp.status == Status.Ok,
+        parsed.token.nonEmpty,
+        parsed.accountNumbers == List("8901201001")
+      )
     },
     test("POST /auth/token with wrong password returns 401") {
       val body = s"""{"email":"${loginUser.email}","password":"wrong"}"""

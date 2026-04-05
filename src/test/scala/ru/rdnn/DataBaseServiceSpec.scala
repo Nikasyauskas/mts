@@ -40,6 +40,8 @@ object DataBaseServiceSpec extends ZIOSpecDefault {
           case _      => ZIO.fail(AccountNotFound(accountNumber))
         }
       override def insertAccount(account: Accounts): ZIO[DataSource, AppError, Unit] = ZIO.unit
+      override def listAccountNumbersByUserId(userId: UUID): ZIO[DataSource, AppError, List[String]] =
+        ZIO.succeed(Nil)
       override def withdrawalAccount(account: Accounts, amount: Float): ZIO[DataSource, AppError, Unit] =
         if (withdrawalFails) ZIO.fail(DbError(new RuntimeException("db"))) else ZIO.unit
       override def creditAccount(account: Accounts, amount: Float): ZIO[DataSource, AppError, Unit] =

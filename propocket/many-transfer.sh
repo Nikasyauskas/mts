@@ -31,29 +31,3 @@ curl -sS -X POST "http://localhost:8080/transfer/account-number" \
   }'
 
 ## TESTS -------------------------------------------------------------------------------------
-curl -sS -X POST "http://localhost:8080/auth/register" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "new.user@example.com",
-    "password": "asdasdasda",
-    "userName": "niki",
-    "phone": "+79001234567"
-  }'
-
-curl -sS -X POST "http://localhost:8080/auth/token" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "new.user@example.com",
-    "password": "asdasdasda"
-  }'
-
-curl -sS -X POST "http://localhost:8080/transfer/account-number" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE3NzUzOTc0MTYsImlhdCI6MTc3NTM5MzgxNiwidXNlcklkIjoiNjc1NmYzODUtODY1Ni00NjI2LWE3ZTYtYmU0MDNlZjU4MDAyIiwiZXhwIjoxNzc1Mzk3NDE2LCJpYXQiOjE3NzUzOTM4MTZ9.gmJPwghGFXKT72qgYIceoUY9qYa5st7tCb3E7TJGKSg" \
-  -d '{
-    "userId": "6756f385-8656-4626-a7e6-be403ef58002",
-    "fromAccount": "896050114513",
-    "toAccount": "8901201002",
-    "amount": 100.00
-  }'
-
