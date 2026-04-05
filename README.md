@@ -132,7 +132,7 @@ curl -X POST http://localhost:8080/transfer/account-number \
 8. [x] [warn] found version conflict(s) in library dependencies; some are suspected to be binary incompatible:
 9. [x] транзакционность на уровне кода
 10. [x] unit tests
-11. [ ] аутентификация
+11. [x] аутентификация
 12. [ ] упаковать приложение в docker контейнер
 13. [ ] полноценный фронтенд
 14. [ ] финальный рефакторинг
