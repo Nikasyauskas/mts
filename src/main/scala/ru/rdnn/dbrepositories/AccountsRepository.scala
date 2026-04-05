@@ -11,6 +11,7 @@ import javax.sql.DataSource
 
 trait AccountsRepository {
   def findAccountByAccountNumber(accountNumber: String): ZIO[DataSource, AppError, Accounts]
+  def insertAccount(account: Accounts): ZIO[DataSource, AppError, Unit]
   def withdrawalAccount(account: Accounts, amount: Float): ZIO[DataSource, AppError, Unit] // списание
   def creditAccount(account: Accounts, amount: Float): ZIO[DataSource, AppError, Unit]     // зачисление
 }
@@ -36,6 +37,14 @@ class AccountsRepositoryImpl(dataSource: DataSource) extends AccountsRepository 
           .fromOption(accounts.headOption)
           .orElseFail(AccountNotFound(accountNumber))
       }
+
+  def insertAccount(account: Accounts): ZIO[DataSource, AppError, Unit] =
+    ZIO
+      .service[DataSource]
+      .flatMap { _ =>
+        run(bankAccountsSchema.insertValue(lift(account))).unit
+      }
+      .mapError(DbError(_))
 
   def withdrawalAccount(account: Accounts, amount: Float): ZIO[DataSource, AppError, Unit] =
     ZIO

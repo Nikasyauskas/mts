@@ -14,6 +14,8 @@ import javax.sql.DataSource
 
 trait UserRepository {
   def findUserById(id: UUID): ZIO[DataSource, AppError, Option[User]]
+  def findUserByEmail(email: String): ZIO[DataSource, AppError, Option[User]]
+  def insertUser(user: User): ZIO[DataSource, AppError, Unit]
 }
 
 class UserRepositoryImpl(dataSource: DataSource) extends UserRepository {
@@ -31,6 +33,25 @@ class UserRepositoryImpl(dataSource: DataSource) extends UserRepository {
           bankUsersSchema
             .filter(_.id == lift(id))
         ).map(_.headOption)
+      }
+      .mapError(DbError(_))
+
+  def findUserByEmail(email: String): ZIO[DataSource, AppError, Option[User]] =
+    ZIO
+      .service[DataSource]
+      .flatMap { _ =>
+        run(
+          bankUsersSchema
+            .filter(_.email == lift(email))
+        ).map(_.headOption)
+      }
+      .mapError(DbError(_))
+
+  def insertUser(user: User): ZIO[DataSource, AppError, Unit] =
+    ZIO
+      .service[DataSource]
+      .flatMap { _ =>
+        run(bankUsersSchema.insertValue(lift(user))).unit
       }
       .mapError(DbError(_))
 

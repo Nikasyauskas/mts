@@ -26,6 +26,10 @@ object AppErrorSpec extends ZIOSpecDefault {
       val e = JsonDecodingError("unexpected token")
       assertTrue(e.message == "Invalid JSON: unexpected token")
     },
+    test("EmailAlreadyRegistered message") {
+      val e = EmailAlreadyRegistered("a@b.c")
+      assertTrue(e.message == "Email already registered: a@b.c")
+    },
     test("DbError message and cause") {
       val cause = new RuntimeException("connection refused")
       val e = DbError(cause)
