@@ -5,6 +5,7 @@ CREATE TABLE bank.users (
     id UUID PRIMARY KEY, -- [index]
     user_name VARCHAR(255), -- [index]
     email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(72) NOT NULL,
     phone VARCHAR(20),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -44,11 +45,11 @@ CREATE TABLE bank.balance_history (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- users (id via gen_random_uuid() for new rows)
-INSERT INTO bank.users (id, user_name, email, phone, created_at, updated_at, is_active) VALUES
-('e4224dc9-ac32-4682-a43c-d7cfc791af5b', 'James Bond', '007@bank.local', '+7(900)007-45-01', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, true),
-('3c4987b6-c696-4768-97e2-f79622a49e6b', 'Judge Dredd', 'ImTheLaw@bank.local', '+7(903)123-45-02', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, true),
-('bf7e2e36-350b-4ea7-ae7d-ff4ce38d3476', 'Ernest Hemingway', 'AFarewellToArms@bank.local', '+7(900)123-45-03', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, true);
+-- users (id via gen_random_uuid() for new rows); password for all seeds: "password"
+INSERT INTO bank.users (id, user_name, email, password_hash, phone, created_at, updated_at, is_active) VALUES
+('e4224dc9-ac32-4682-a43c-d7cfc791af5b', 'James Bond', '007@bank.local', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '+7(900)007-45-01', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, true),
+('3c4987b6-c696-4768-97e2-f79622a49e6b', 'Judge Dredd', 'ImTheLaw@bank.local', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '+7(903)123-45-02', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, true),
+('bf7e2e36-350b-4ea7-ae7d-ff4ce38d3476', 'Ernest Hemingway', 'AFarewellToArms@bank.local', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '+7(900)123-45-03', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, true);
 
 -- accounts (id UUID, user_id -> users.id)
 INSERT INTO bank.accounts (id, user_id, account_number, currency_code, balance, created_at, updated_at, is_active) VALUES

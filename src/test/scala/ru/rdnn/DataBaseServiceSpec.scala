@@ -39,6 +39,9 @@ object DataBaseServiceSpec extends ZIOSpecDefault {
           case "acc2" => ZIO.fromOption(to).orElseFail(AccountNotFound(accountNumber))
           case _      => ZIO.fail(AccountNotFound(accountNumber))
         }
+      override def insertAccount(account: Accounts): ZIO[DataSource, AppError, Unit] = ZIO.unit
+      override def listAccountNumbersByUserId(userId: UUID): ZIO[DataSource, AppError, List[String]] =
+        ZIO.succeed(Nil)
       override def withdrawalAccount(account: Accounts, amount: Float): ZIO[DataSource, AppError, Unit] =
         if (withdrawalFails) ZIO.fail(DbError(new RuntimeException("db"))) else ZIO.unit
       override def creditAccount(account: Accounts, amount: Float): ZIO[DataSource, AppError, Unit] =
@@ -65,6 +68,8 @@ object DataBaseServiceSpec extends ZIOSpecDefault {
   private val mockUserRepo: ZLayer[DataSource, Nothing, UserRepository] =
     ZLayer.succeed(new UserRepository {
       override def findUserById(id: UUID): ZIO[DataSource, AppError, Option[User]] = ZIO.succeed(None)
+      override def findUserByEmail(email: String): ZIO[DataSource, AppError, Option[User]] = ZIO.succeed(None)
+      override def insertUser(user: User): ZIO[DataSource, AppError, Unit] = ZIO.unit
     })
 
   private def dummyDataSource: ZLayer[Any, Nothing, DataSource] =

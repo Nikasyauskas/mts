@@ -15,6 +15,8 @@ lazy val root = (project in file("."))
       Dependencies.ZioConfig ++
         Seq(
           Dependencies.zioHttp,
+          Dependencies.jwtScala,
+          Dependencies.jbcrypt,
           Dependencies.zioQuill,
           Dependencies.postgres,
           Dependencies.zioLogging,

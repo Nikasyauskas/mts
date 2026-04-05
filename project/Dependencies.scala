@@ -8,6 +8,8 @@ object Dependencies {
   lazy val zioQuillVersion = "4.8.5"
   lazy val zioLoggingVersion = "2.1.15"
   lazy val zioJsonVersion = "0.7.42"
+  lazy val jwtScalaVersion = "11.0.3"
+  lazy val jbcryptVersion = "0.4"
 
   lazy val PostgresVersion = "42.3.1"
   lazy val LogbackVersion = "1.2.3"
@@ -27,6 +29,8 @@ object Dependencies {
   )
 
   lazy val zioHttp = "dev.zio" %% "zio-http" % zioHttpVersion
+  lazy val jwtScala = "com.github.jwt-scala" %% "jwt-core" % jwtScalaVersion
+  lazy val jbcrypt = "org.mindrot" % "jbcrypt" % jbcryptVersion
   lazy val zioQuill = "io.getquill" %% "quill-jdbc-zio" % zioQuillVersion exclude("dev.zio", "zio-json_3")
   lazy val zioLogging = "dev.zio" %% "zio-logging" % zioLoggingVersion
   lazy val zioJson = "dev.zio" %% "zio-json" % zioJsonVersion

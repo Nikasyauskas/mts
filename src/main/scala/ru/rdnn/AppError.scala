@@ -28,6 +28,10 @@ object AppError {
     override val message: String = s"Invalid JSON: $details"
   }
 
+  final case class EmailAlreadyRegistered(email: String) extends AppError {
+    override val message: String = s"Email already registered: $email"
+  }
+
   final case class DbError(cause: Throwable) extends AppError {
     override val message: String = s"Database error: ${cause.getMessage}"
     override def getCause: Throwable = cause

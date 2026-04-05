@@ -10,6 +10,7 @@ package object dbrepositories {
     id: UUID,
     user_name: String,
     email: String,
+    password_hash: String,
     phone: String,
     created_at: ZonedDateTime,
     updated_at: ZonedDateTime,
