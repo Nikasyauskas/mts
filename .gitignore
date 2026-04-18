@@ -7,6 +7,9 @@ project/project
 project/target
 target
 
+frontend/node_modules
+frontend/dist
+
 *.class
 *.log
 hs_err_pid*
