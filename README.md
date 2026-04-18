@@ -96,6 +96,19 @@ pip install -r requirements.txt
 python3 mts-frontend.py
 ```
 
+### 3.4 Веб-интерфейс (Vue 3 + TypeScript + Vite)
+
+Сервер API отдаёт CORS для `http://localhost` / `127.0.0.1` на портах **5173** (Vite по умолчанию), **3000**, **4173** (`vite preview`). Другой порт — поправь `corsConfig` в `src/main/scala/ru/rdnn/Main.scala`.
+
+```bash
+cd frontend
+npm install
+cp .env.example .env   # при необходимости измени VITE_API_BASE
+npm run dev             # http://localhost:5173
+```
+
+В другом терминале: PostgreSQL (`docker compose up -d`) и `sbt run`. В браузере: регистрация / вход / перевод.
+
 ### Управление приложением
 
 - **Q** - Выход из приложения
@@ -133,7 +146,7 @@ curl -X POST http://localhost:8080/transfer/account-number \
 9. [x] транзакционность на уровне кода
 10. [x] unit tests
 11. [x] аутентификация
-12. [ ] полноценный фронтенд
+12. [x] полноценный фронтенд
 13. [ ] упаковать приложение в docker контейнер
 14. [ ] финальный рефакторинг
 [ ] realise #1
